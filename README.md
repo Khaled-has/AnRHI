@@ -227,4 +227,5 @@ Contributions, experiments, and ideas are welcome.
 ---
 
 📄 License
+
 You are free to use, modify, and distribute this project, even for commercial use, as long as you include the original license.
