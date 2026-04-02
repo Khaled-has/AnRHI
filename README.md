@@ -1,4 +1,4 @@
-AnRHI (Advanced Render Hardware Interface)
+#AnRHI (Advanced Render Hardware Interface)
 
 AnRHI is a lightweight and flexible Render Hardware Interface (RHI) designed for learning, experimentation, and building custom rendering systems.
 
