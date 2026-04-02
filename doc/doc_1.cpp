@@ -13,7 +13,6 @@
 
 int main(int argc, char argv[])
 {
-	printf("Hello AnRHI");
 	Log pLog;
 	pLog.Init();
 
