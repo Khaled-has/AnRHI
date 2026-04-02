@@ -1,6 +1,6 @@
 #include "GPU_Buffer.h"
 
-#include "Log/Log.h"
+#include "Log.h"
 #include "VK/VK_Buffer.h"
 
 #include "GPU_Backend.h"

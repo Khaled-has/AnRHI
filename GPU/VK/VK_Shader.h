@@ -7,7 +7,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "GPU/GPU_Shader.h"
+#include "GPU_Shader.h"
 
 namespace GPU
 {

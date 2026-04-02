@@ -2,7 +2,7 @@
 
 #include "GPU_Backend.h"
 
-#include "GPU/VK/VK_Texture.h"
+#include "VK/VK_Texture.h"
 
 namespace RHI
 {

@@ -1,7 +1,7 @@
 #ifndef VK_BACKEND_H
 #define VK_BACKEND_H
 
-#include "GPU/GPU_Backend.h"
+#include "GPU_Backend.h"
 
 #include "VK_Device.h"
 #include "VK_SwapChain.h"

@@ -3,7 +3,7 @@
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL_vulkan.h>
 
-#include "GPU/VK/VK_Backend.h"
+#include "VK/VK_Backend.h"
 
 namespace lib_backend
 {

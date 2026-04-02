@@ -3,10 +3,10 @@
 
 #include <SDL3/SDL.h>
 
-#include "GPU/GPU.h"
-#include "GPU/Backends/GPU_SDL3.h"
+#include "GPU.h"
+#include "Backends/GPU_SDL3.h"
 
-#include "Log/Log.h"
+#include "Log.h"
 
 
 /* -- You should to render a simple triangle with this documentation -- */

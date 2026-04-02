@@ -1,7 +1,7 @@
 #ifndef VK_DRAW_H
 #define VK_DRAW_H
 
-#include "GPU/GPU_Draw.h"
+#include "GPU_Draw.h"
 
 #include "VK_GraphicsPipeline.h"
 #include "VK_Buffer.h"

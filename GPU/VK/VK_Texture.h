@@ -6,7 +6,7 @@
 
 #include <Vulkan/vulkan.h>
 
-#include "GPU/GPU_Texture.h"
+#include "GPU_Texture.h"
 
 namespace GPU
 {

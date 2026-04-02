@@ -6,7 +6,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "GPU/GPU_Buffer.h"
+#include "GPU_Buffer.h"
 
 namespace GPU
 {

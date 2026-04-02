@@ -6,7 +6,7 @@
 #include <vector>
 #include <functional>
 
-#include "GPU/GPU_RenderPass.h"
+#include "GPU_RenderPass.h"
 
 #include <vulkan/vulkan.h>
 
