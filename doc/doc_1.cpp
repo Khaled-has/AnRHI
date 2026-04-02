@@ -6,16 +6,10 @@
 #include "GPU.h"
 #include "Backends/GPU_SDL3.h"
 
-#include "Log.h"
-
-
 /* -- You should to render a simple triangle with this documentation -- */
 
 int main(int argc, char argv[])
 {
-	Log pLog;
-	pLog.Init();
-
 	SDL_Window* pWin = SDL_CreateWindow(
 		"AnRHI-doc_1",
 		1440, 720,

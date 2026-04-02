@@ -6,8 +6,6 @@
 #include "GPU.h"
 #include "Backends/GPU_SDL3.h"
 
-#include "Log.h"
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -16,9 +14,6 @@
 
 int main(int argc, char argv[])
 {
-	Log pLog;
-	pLog.Init();
-
 	SDL_Window* pWin = SDL_CreateWindow(
 		"AnRHI-doc_1",
 		1440, 720,

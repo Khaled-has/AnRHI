@@ -17,7 +17,7 @@ namespace RHI {
 	class GPU_Backend
 	{
 	public:
-		GPU_Backend() {}
+		GPU_Backend();
 		~GPU_Backend() {}
 
 		virtual bool IsDeviceSupportBackend() = 0;

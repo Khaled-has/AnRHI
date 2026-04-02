@@ -121,7 +121,7 @@ namespace GPU
 		}
 		else if (pType == RHI::GPU_BUFFER_TYPE_STATIC)
 		{
-			GPU_LOG_ERROR(
+			VK_LOG_ERROR(
 				"ANRHI Error: You cannot update buffer with type: GPU_BUFFER_TYPE_STATIC\n 	  Change the type to GPU_BUFFER_TYPE_DYNAMIC or GPU_BUFFER_TYPE_DYNAMIC_RESIZEABLE"
 			);
 		}

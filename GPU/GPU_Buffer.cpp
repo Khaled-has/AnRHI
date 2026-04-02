@@ -1,6 +1,5 @@
 #include "GPU_Buffer.h"
 
-#include "Log.h"
 #include "VK/VK_Buffer.h"
 
 #include "GPU_Backend.h"
@@ -18,7 +17,6 @@ namespace RHI
 			return NULL;
 		}
 
-		GPU_LOG_ERROR("Selected the backend api before you create any thing");
 		return NULL;
 	}
 }

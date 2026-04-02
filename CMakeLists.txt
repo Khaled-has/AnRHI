@@ -24,7 +24,6 @@ find_package(SDL3 REQUIRED CONFIG COMPONENTS SDL3)
 file(GLOB_RECURSE ANRHI_SOURCES
 	CONFIGURE_DEPENDS
 		"${CMAKE_SOURCE_DIR}/GPU/*.cpp"
-		"${CMAKE_SOURCE_DIR}/Log/Log.cpp"
 		"${EXTERN_DIR}/stb/stb_image.cpp"
 )
 
@@ -32,7 +31,6 @@ add_library(AnRHI_Core OBJECT ${ANRHI_SOURCES})
 
 target_include_directories(AnRHI_Core PUBLIC
 	"${CMAKE_SOURCE_DIR}/GPU"
-	"${CMAKE_SOURCE_DIR}/Log"
 	"${VULKAN_PATH}/Include"
 	"${EXTERN_DIR}/shaderc"
 	"${EXTERN_DIR}/spdlog/include"
