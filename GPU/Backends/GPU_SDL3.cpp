@@ -13,11 +13,6 @@ namespace lib_backend
 		pWin = pWindow;
 	}
 
-	GPU_WinLib GPU_SDL3::GetWindowLib()
-	{
-		return SDL3;
-	}
-
 	GPU_WinSize GPU_SDL3::GetWindowSize()
 	{
 		int w, h;
@@ -27,11 +22,6 @@ namespace lib_backend
 			.pHeight = (uint32_t)h
 		};
 		return pWinSize;
-	}
-
-	void* GPU_SDL3::GetWindowHandle()
-	{
-		return pWin;
 	}
 
 	void GPU_SDL3::CreateSurfaceForVulkan(void* pVkSurface)

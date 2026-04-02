@@ -11,13 +11,6 @@ namespace lib_backend
 		uint32_t pWidth, pHeight;
 	};
 
-	typedef enum GPU_WinLib
-	{
-		SDL3 = 0,
-		GLFW = 1,
-		ANDROID_GAME_ACTIVITY = 2
-	} GPU_WinLib;
-
 	class GPU_LibBackend
 	{
 	public:
@@ -28,9 +21,7 @@ namespace lib_backend
 
 		virtual void Init(void* pWindow) = 0;
 
-		virtual GPU_WinLib GetWindowLib() = 0;
 		virtual GPU_WinSize GetWindowSize() = 0;
-		virtual void* GetWindowHandle() = 0;
 
 		virtual void CreateSurfaceForVulkan(void* pVkSurface) = 0;
 		virtual void CreateSurfaceForDirectX12() = 0;
