@@ -144,13 +144,14 @@ namespace GPU {
 
 		pScreenImagePipeline.Create(&pBindings);
 		const std::vector<VkFormat> pColorFormats = { pSwapChain.GetSurfaceFormat().format };
+  auto pWinSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
 		pCurrentRenderPassDrawInfo = {
 			.pEnableColor = true,
 			.pEnableDepth = false,
 			.pColorFormats = pColorFormats,
 			.pDepthFormat = VK_FORMAT_UNDEFINED,
-			.pWidth = 1440,
-			.pHeight = 720
+			.pWidth = pWinSize.pWidth,
+			.pHeight = pWinSize.pHeight
 		};
 		pCurrentRenderPass = pSwapChain.GetRenderPass();
 		pCurrentShader = pScreenImageShader;
