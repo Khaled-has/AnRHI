@@ -58,7 +58,16 @@ namespace GPU {
 	};
 
 	//	 # Hard coded extensions used
-	inline unsigned int VK_Extensions = VK_SURFACE_EXT_NAME | VK_WIN32_SURFACE_EXT | VK_DEBUG_UTILS_EXT;
+	inline unsigned int VK_Extensions =
+		VK_SURFACE_EXT_NAME |
+#ifdef WIN32
+		VK_WIN32_SURFACE_EXT | VK_DEBUG_UTILS_EXT;
+#elif __linux__
+		VK_LINUX_SURFACE_EXT | VK_DEBUG_UTILS_EXT;
+#elif ANDROID
+		VK_ANDROID_SURFACE_EXT;
+#endif
+
 
 	inline const std::vector<const char*> VK_Get_Extensions(unsigned int _ext)
 	{
@@ -89,7 +98,11 @@ namespace GPU {
 	};
 
 	//	 # Hard coded layers used
+#if !defined(ANDROID)
 	inline unsigned int VK_Layers = VK_VALIDATION_LAYER;
+#else
+	inline unsigned int VK_Layers = 0;
+#endif
 
 	inline const std::vector<const char*> VK_Get_Layers(unsigned int _lyr)
 	{

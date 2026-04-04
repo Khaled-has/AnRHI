@@ -34,7 +34,7 @@ namespace GPU
 		~VK_Buffer() {}
 
 		virtual void Create(const void* pData, size_t pSize, RHI::GPU_BufferType pBufferType) override;
-		void Destroy();
+		virtual void Destroy() override;
 
 		virtual void Update(const void* pData, size_t pSize) override;
 

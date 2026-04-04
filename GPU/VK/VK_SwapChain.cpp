@@ -211,7 +211,8 @@ namespace GPU
 		uint32_t NumSwapChainImages = 0;
 		res = vkGetSwapchainImagesKHR(pDevice.GetDevice(), pSwapChain, &NumSwapChainImages, NULL);
 		VK_CHECK("Cannot calculate swapchain images", res);
-		assert(NumImages == NumSwapChainImages);
+		NumImages = NumSwapChainImages;
+		//assert(NumImages == NumSwapChainImages);
 
 		pImages.resize(NumSwapChainImages);
 		pImageViews.resize(NumSwapChainImages);
