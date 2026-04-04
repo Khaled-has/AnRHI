@@ -14,7 +14,7 @@ namespace GPU
 		int w, h, c;
 
 		// # Step 1: load the image pixels
-		stbi_uc* pPixels = stbi_load((std::string(RES_PATH) + pFilename).c_str(), &w, &h, &c, STBI_rgb_alpha);
+		stbi_uc* pPixels = stbi_load(pFilename, &w, &h, &c, STBI_rgb_alpha);
 		ImageWidth = w; ImageHeight = h; ImageChannels = c;
 		if (!pPixels)
 		{

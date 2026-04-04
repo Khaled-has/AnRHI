@@ -1,4 +1,5 @@
 #include "GPU_SDL3.h"
+#include "GPU_SDL3.h"
 
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL_vulkan.h>
@@ -22,6 +23,11 @@ namespace lib_backend
 			.pHeight = (uint32_t)h
 		};
 		return pWinSize;
+	}
+
+	void* GPU_SDL3::GetHandle()
+	{
+		return pWin;
 	}
 
 	void GPU_SDL3::CreateSurfaceForVulkan(void* pVkSurface)

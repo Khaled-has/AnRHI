@@ -7,7 +7,10 @@
 #include "VK_wrappar.h"
 #include "VK_Backend.h"
 
-#include "shaderc.hpp"
+#ifdef ANDROID
+#include <game-activity/native_app_glue/android_native_app_glue.h>
+#include <game-activity/GameActivity.h>
+#endif
 
 namespace GPU
 {
@@ -15,7 +18,7 @@ namespace GPU
 	std::vector<uint32_t> ReadFile(const std::string& pPath)
 	{
 #ifdef ANDROID
-		AAsetManager* mgr = reinterpret_cast<android_app*>(lib_backend::GPU_LibBackend::GetInstance()->GetWindowHandle())->activity->assetsManager;
+		AAssetManager* mgr = reinterpret_cast<android_app*>(lib_backend::GPU_LibBackend::GetInstance()->GetHandle())->activity->assetManager;
 		AAsset* pAsset = AAssetManager_open(mgr, pPath.c_str(), AASSET_MODE_BUFFER);
 		size_t pSize = AAsset_getLength(pAsset);
 		std::vector<uint32_t> buffer(pSize / 4);

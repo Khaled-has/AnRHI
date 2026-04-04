@@ -10,15 +10,16 @@ namespace lib_backend
 	public:
 		GPU_Android() {}
 
-		virtual void Init(void* pWindow) override;
+		virtual void Init(void* pApp) override;
 
 		virtual GPU_WinSize GetWindowSize() override;
+		virtual void* GetHandle() override;
 
 		virtual void CreateSurfaceForVulkan(void* pVkSurface) override;
 		virtual void CreateSurfaceForDirectX12() override;
 
 	private:
-		void* pWin;
+		void* pApp;
 	};
 }
 

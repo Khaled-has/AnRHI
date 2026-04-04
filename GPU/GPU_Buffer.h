@@ -1,6 +1,8 @@
 #ifndef GPU_BUFFER_H
 #define GPU_BUFFER_H
 
+#include <iostream>
+
 namespace RHI
 {
 	typedef enum GPU_BufferType

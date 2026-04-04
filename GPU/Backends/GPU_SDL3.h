@@ -15,6 +15,7 @@ namespace lib_backend
 		virtual void Init(void* pWindow) override;
 
 		virtual GPU_WinSize GetWindowSize() override;
+		virtual void* GetHandle() override;
 
 		virtual void CreateSurfaceForVulkan(void* pVkSurface) override;
 		virtual void CreateSurfaceForDirectX12() override;

@@ -8,7 +8,7 @@
 #include <shaderc.hpp>
 #define GPU_ENABLE_RUNTIME_SHADING
 
-#elif (__has_include(<shaderc/shaderc.hpp>)
+#elif __has_include(<shaderc/shaderc.hpp>)
 #include <shaderc/shaderc.hpp>
 #define GPU_ENABLE_RUNTIME_SHADING
 

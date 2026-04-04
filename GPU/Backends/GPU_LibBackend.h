@@ -19,9 +19,16 @@ namespace lib_backend
 			pInstance = this;
 		}
 
-		virtual void Init(void* pWindow) = 0;
+		virtual void Init(
+#ifdef ADNROID
+			void* pApp
+#else
+			void* pWindow
+#endif
+		) = 0;
 
 		virtual GPU_WinSize GetWindowSize() = 0;
+		virtual void* GetHandle() = 0;
 
 		virtual void CreateSurfaceForVulkan(void* pVkSurface) = 0;
 		virtual void CreateSurfaceForDirectX12() = 0;

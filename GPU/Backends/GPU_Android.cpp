@@ -12,13 +12,13 @@
 
 namespace lib_backend {
 
-    void GPU_Android::Init(void* pWindow) 
+    void GPU_Android::Init(void* pApp) 
     {
-        pWin = pWindow;
+        this->pApp = pApp;
     }
 
     GPU_WinSize GPU_Android::GetWindowSize() {
-        ANativeWindow* pWin = static_cast<ANativeWindow*>(pWin);
+        ANativeWindow* pWin = static_cast<ANativeWindow*>(pApp);
         GPU_WinSize WinSize = {
             .pWidth = (uint32_t)ANativeWindow_getWidth(pWin),
             .pHeight = (uint32_t)ANativeWindow_getHeight(pWin)
@@ -27,13 +27,18 @@ namespace lib_backend {
         return WinSize;
     }
 
+    void* GPU_Android::GetHandle()
+    {
+        return pApp;
+    }
+
     void GPU_Android::CreateSurfaceForVulkan(void* pVkSurface) 
     {
         VkAndroidSurfaceCreateInfoKHR CreateInfo = {
                 .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
                 .pNext = NULL,
                 .flags = 0,
-                .window = static_cast<ANativeWindow*>(pWin)
+                .window = static_cast<ANativeWindow*>(pApp)
         };
 
         VkSurfaceKHR* pSurface = static_cast<VkSurfaceKHR*>(pVkSurface);

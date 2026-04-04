@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <vulkan/vulkan.h>
-//#include "VK_Backend.h"
 
 #define BIN(_N) (1 << _N)
 
