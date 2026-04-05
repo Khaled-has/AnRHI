@@ -10,7 +10,7 @@ namespace RHI
 {
 	GPU_Backend::GPU_Backend()
 	{
-#ifdef ANRHI_LOG_ENABLED
+#ifdef ENABLE_GPU_LOG
 		GPU_Log Log;
 		Log.Init();
 #endif

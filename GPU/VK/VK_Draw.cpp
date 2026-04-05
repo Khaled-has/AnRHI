@@ -47,7 +47,7 @@ namespace GPU
 		);
 	}
 
-	void VK_Draw::Create()
+	void VK_Draw::InitBindings()
 	{
 		pGraphPipeline.Create(&pBindings);
 	}

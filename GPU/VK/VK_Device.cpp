@@ -202,7 +202,7 @@ namespace GPU
 				VK_LOG_TRACE("{0}", pCallbackData->pObjects[i].objectHandle);
 			}
 #else
-			if (GetDebugSeverityStr(Severity) == "Error")
+			if (std::string(GetDebugSeverityStr(Severity)) == "Error")
 			{
 				VK_LOG_ERROR("{0}", pCallbackData->pObjects[i].objectHandle);
 			}

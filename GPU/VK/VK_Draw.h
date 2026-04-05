@@ -19,8 +19,8 @@ namespace GPU
 
 		virtual void SetBuffer(const RHI::GPU_Buffer* pBuffer, RHI::GPU_BufferType pBufType, uint32_t pBindIndex) override;
 		virtual void SetTexture(const RHI::GPU_Texture* pTexture, uint32_t pBindIndex) override;
-		virtual void Create() override;
 
+		virtual void InitBindings() override;
 		virtual void Destroy() override;
 
 		virtual void Draw(uint32_t pFirstVertex, uint32_t pVertexCount) override;

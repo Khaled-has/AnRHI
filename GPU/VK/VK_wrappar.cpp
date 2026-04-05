@@ -205,7 +205,7 @@ namespace GPU
 		VkRenderingAttachmentInfo DepthAttachment = {
 			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 			.pNext = NULL,
-			.imageView = IsDepthTest ? VK_Backend::Get()->GetSwapChain().GetDepthImageView(ImageIndex) : NULL,
+			.imageView = IsDepthTest ? VK_Backend::Get()->GetSwapChain().GetDepthImageView(ImageIndex) : VK_NULL_HANDLE,
 			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 			.resolveMode = VK_RESOLVE_MODE_NONE,
 			.resolveImageView = VK_NULL_HANDLE,
@@ -228,7 +228,7 @@ namespace GPU
 			.viewMask = 0,
 			.colorAttachmentCount = 1,
 			.pColorAttachments = &ColorAttachment,
-			.pDepthAttachment = IsDepthTest ? &DepthAttachment : NULL
+			.pDepthAttachment = IsDepthTest ? &DepthAttachment : VK_NULL_HANDLE
 		};
 
 		vkCmdBeginRendering(CmdBuf, &RenderingInfo);
@@ -256,7 +256,7 @@ namespace GPU
 		VkRenderingAttachmentInfo DepthAttachment = {
 			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 			.pNext = NULL,
-			.imageView = IsDepthTest ? *pDepthView : NULL,
+			.imageView = IsDepthTest ? *pDepthView : VK_NULL_HANDLE,
 			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 			.resolveMode = VK_RESOLVE_MODE_NONE,
 			.resolveImageView = VK_NULL_HANDLE,
@@ -279,7 +279,58 @@ namespace GPU
 			.viewMask = 0,
 			.colorAttachmentCount = 1,
 			.pColorAttachments = &ColorAttachment,
-			.pDepthAttachment = IsDepthTest ? &DepthAttachment : NULL
+			.pDepthAttachment = IsDepthTest ? &DepthAttachment : VK_NULL_HANDLE
+		};
+
+		vkCmdBeginRendering(CmdBuf, &RenderingInfo);
+	}
+
+	void BeginDynamicRendering(const VkCommandBuffer& CmdBuf, const VkImageView* pColorView, const VkImageView* pDepthView, uint32_t ImageIndex, VkClearValue* pClearColor, VkClearValue* pDepthValue, bool IsColorAttch, bool IsDepthTest, uint32_t pWidth, uint32_t pHeight)
+	{
+		VkRenderingAttachmentInfoKHR ColorAttachment = {
+			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+			.pNext = NULL,
+			.imageView = *pColorView,
+			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			.resolveMode = VK_RESOLVE_MODE_NONE,
+			.resolveImageView = VK_NULL_HANDLE,
+			.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.loadOp = pClearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE
+		};
+
+		if (IsColorAttch)
+		{
+			ColorAttachment.clearValue = *pClearColor;
+		}
+
+		VkRenderingAttachmentInfo DepthAttachment = {
+			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+			.pNext = NULL,
+			.imageView = IsDepthTest ? *pDepthView : VK_NULL_HANDLE,
+			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			.resolveMode = VK_RESOLVE_MODE_NONE,
+			.resolveImageView = VK_NULL_HANDLE,
+			.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.loadOp = pDepthValue ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE
+		};
+
+		if (IsDepthTest)
+		{
+			DepthAttachment.clearValue = *pDepthValue;
+		}
+
+		auto pWinSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
+
+		VkRenderingInfoKHR RenderingInfo = {
+			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+			.renderArea = {{0, 0}, { pWidth, pHeight }},
+			.layerCount = 1,
+			.viewMask = 0,
+			.colorAttachmentCount = 1,
+			.pColorAttachments = &ColorAttachment,
+			.pDepthAttachment = IsDepthTest ? &DepthAttachment : VK_NULL_HANDLE
 		};
 
 		vkCmdBeginRendering(CmdBuf, &RenderingInfo);

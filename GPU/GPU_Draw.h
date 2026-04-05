@@ -18,8 +18,8 @@ namespace RHI
 
 		virtual void SetBuffer(const GPU_Buffer* pBuffer, GPU_BufferType pBufType, uint32_t pBindIndex) = 0;
 		virtual void SetTexture(const GPU_Texture* pTexture, uint32_t pBindIndex) = 0;
-		virtual void Create() = 0;
 
+		virtual void InitBindings() = 0;
 		virtual void Destroy() = 0;
 
 		virtual void Draw(uint32_t pFirstVertex, uint32_t pVertexCount) = 0;

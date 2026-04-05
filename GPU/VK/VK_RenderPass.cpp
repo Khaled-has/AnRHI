@@ -96,7 +96,8 @@ namespace GPU
 				pDrawInfo.pEnableDepth ? &pDepthImages.pImageViews[ImageIndex] : NULL, 
 				ImageIndex, 
 				&clearColor, &clearDepth, 
-				pDrawInfo.pEnableColor, pDrawInfo.pEnableDepth
+				pDrawInfo.pEnableColor, pDrawInfo.pEnableDepth,
+				pDrawInfo.pWidth, pDrawInfo.pHeight
 			);
 		}
 		// # Begin with render pass

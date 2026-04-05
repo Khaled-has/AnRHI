@@ -21,6 +21,11 @@ namespace lib_backend
 	private:
 		void* pApp;
 	};
+
+	inline GPU_LibBackend* CreateAndroidLib()
+	{
+		return new GPU_Android;
+	}
 }
 
 #endif

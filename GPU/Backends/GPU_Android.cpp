@@ -18,7 +18,7 @@ namespace lib_backend {
     }
 
     GPU_WinSize GPU_Android::GetWindowSize() {
-        ANativeWindow* pWin = static_cast<ANativeWindow*>(pApp);
+        ANativeWindow* pWin = reinterprat_cast<android_app*>(pApp)->window;
         GPU_WinSize WinSize = {
             .pWidth = (uint32_t)ANativeWindow_getWidth(pWin),
             .pHeight = (uint32_t)ANativeWindow_getHeight(pWin)
@@ -38,7 +38,7 @@ namespace lib_backend {
                 .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
                 .pNext = NULL,
                 .flags = 0,
-                .window = static_cast<ANativeWindow*>(pApp)
+                .window = reinterprat_cast<android_app*>(pApp)->window
         };
 
         VkSurfaceKHR* pSurface = static_cast<VkSurfaceKHR*>(pVkSurface);

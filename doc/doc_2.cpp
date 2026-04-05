@@ -23,7 +23,7 @@ int main(int argc, char argv[])
 	// # Set the API graphic backend
 	RHI::GPU_Backend* pBackend = RHI::CreateVulkanBackend();
 	// # Set the window library
-	pBackend->GetLibBackend() = lib_backend::CreateBackend_SDL3();
+	pBackend->GetLibBackend() = lib_backend::CreateSDL3Lib();
 	// # Set the window handle 
 	pBackend->GetLibBackend()->Init(pWin);
 	// # Last initialize the backend
@@ -57,15 +57,19 @@ int main(int argc, char argv[])
 	// # Bind the uniform buffer with 1 binding
 	pDrawCmd->SetBuffer(pUniformBuffer, RHI::GPU_BUFFER_TYPE_DYNAMIC, 1);
 
-	pDrawCmd->Create();
+	// # When you finsh init the bindings
+	pDrawCmd->InitBindings();
 
 	// # Step 3: create the shader 
 	// # ( Take Shor you reChange the shader with current API because AnRHI lit you all the designee in the shaders )
 	RHI::GPU_Shader* pShader = RHI::CreateShader();
-	pShader->InitFromFile(
+	pShader->InitFromFile( // # This function shown if you implemnt shaderc if you not you will don't show it
 		(std::string(RES_PATH) + "GLSL/" + "doc_2.vert").c_str(),
 		(std::string(RES_PATH) + "GLSL/" + "doc_2.frag").c_str()
 	);
+	// # You can you this function if you want more controle
+	// -> pShader->InitFromSPIRvFile("file.vert.spv", "file.frag.spv");
+	// -> pShader->InitSPIR_V(SPITV_Code_vert, SPITV_Code_frag);
 
 	// # Step 4: create the render pass
 	const std::vector<RHI::GPU_Format> pColorFormats = { RHI::GPU_FORMAT_COLOR_RGBA8 };

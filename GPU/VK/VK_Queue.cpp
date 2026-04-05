@@ -99,7 +99,7 @@ namespace GPU
 			.pSignalSemaphores = VK_NULL_HANDLE
 		};
 
-		VkResult res = vkQueueSubmit(pQueue, 1, &SubmitInfo, NULL);
+		VkResult res = vkQueueSubmit(pQueue, 1, &SubmitInfo, VK_NULL_HANDLE);
 		VK_CHECK("vkQueueSubmit", res);
 	}
 

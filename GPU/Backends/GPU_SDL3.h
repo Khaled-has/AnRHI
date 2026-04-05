@@ -24,7 +24,10 @@ namespace lib_backend
 		void* pWin;
 	};
 
-	inline GPU_LibBackend* CreateBackend_SDL3() { return new GPU_SDL3; }
+	inline GPU_LibBackend* CreateSDL3Lib() 
+	{ 
+		return new GPU_SDL3; 
+	}
 }
 
 #endif

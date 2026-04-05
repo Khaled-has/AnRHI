@@ -19,7 +19,7 @@ int main(int argc, char argv[])
 	// # Set the API graphic backend
 	RHI::GPU_Backend* pBackend = RHI::CreateVulkanBackend();
 	// # Set the window library
-	pBackend->GetLibBackend() = lib_backend::CreateBackend_SDL3();
+	pBackend->GetLibBackend() = lib_backend::CreateSDL3Lib();
 	// # Set the window handle 
 	pBackend->GetLibBackend()->Init(pWin);
 	// # Last initialize the backend
@@ -35,7 +35,8 @@ int main(int argc, char argv[])
 	RHI::GPU_Draw* pDrawCmd = RHI::CreateDraw();
 	pDrawCmd->SetBuffer(pVertexBuffer, RHI::GPU_BUFFER_TYPE_STATIC, 0);
 
-	pDrawCmd->Create();
+	// # When you finsh init the bindings
+	pDrawCmd->InitBindings();
 
 	// # Step 3: create the shader 
 	// # ( Take Shor you reChange the shader with current API because AnRHI lit you all the designee in the shaders )
@@ -53,8 +54,8 @@ int main(int argc, char argv[])
 		.pEnableDepth = false,
 		.pColorFormats = pColorFormats,
 		.pDepthFormat = RHI::GPU_FORMAT_UNDEFINE,
-		.pWidth = 1440,
-		.pHeight = 720
+		.pWidth = 720,
+		.pHeight = 320
 	};
 	RHI::GPU_RenderPass* pRenPassDrawObjs = RHI::CreateRenderPass(pRenPassInfo);
 

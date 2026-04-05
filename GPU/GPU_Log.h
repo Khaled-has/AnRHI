@@ -4,10 +4,17 @@
 #include <iostream>
 #include <memory>
 
+#if __has_include(<spdlog.h>)
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
+#define ENABLE_GPU_LOG
+#elif __has_include(<spdlog/spdlog.h>)
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
+#define ENABLE_GPU_LOG
+#endif
 
-
+#ifdef ENABLE_GPU_LOG
 class GPU_Log
 {
 public:
@@ -26,6 +33,15 @@ private:
 
 #define GPU_ASSERT(x, ...)		 { if (!x) { ::Editor::GPU_Log::GetLogger()->error("Assert error: {0}", __VA_ARGS__); __debugbreak(); } }
 
-#define ANRHI_LOG_ENABLED
+#else
+
+#define GPU_LOG_TRACE(...)
+#define GPU_LOG_INFO(...) 
+#define GPU_LOG_WARN(...) 
+#define GPU_LOG_ERROR(...)
+
+#define GPU_ASSERT(x, ...)
+
+#endif
 
 #endif
