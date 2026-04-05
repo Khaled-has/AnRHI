@@ -34,7 +34,6 @@ target_include_directories(AnRHI_Core PUBLIC
 	"${VULKAN_PATH}/Include"
 	"${EXTERN_DIR}/shaderc"
 	"${EXTERN_DIR}/spdlog/include"
-	"${EXTERN_DIR}/glm"
 	"${EXTERN_DIR}/stb"
 
 	# Window libraries
@@ -53,6 +52,10 @@ set(DOC_APPS "doc_1" "doc_2")
 foreach (APP IN LISTS DOC_APPS)
 
 add_executable(${APP} "${CMAKE_SOURCE_DIR}/doc/${APP}.cpp")
+
+target_include_directories(${APP} PUBLIC
+	"${EXTERN_DIR}/glm"
+)
 
 target_link_libraries(${APP} PRIVATE
 	AnRHI_Core

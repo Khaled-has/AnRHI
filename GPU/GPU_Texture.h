@@ -11,10 +11,12 @@ namespace RHI
 		~GPU_Texture() {}
 
 		virtual void Create(const char* pFilename) = 0;
+		virtual void Read(const void* pPixels, int w, int h) = 0;
 		virtual void Destroy() = 0;
 	};
 
 	GPU_Texture* CreateTexture(const char* pFilename);
+	GPU_Texture* CreateTexture(const void* pPixels, int w, int h);
 
 }
 

@@ -3,8 +3,6 @@
 #include "VK_wrappar.h"
 #include "VK_Backend.h"
 
-#include <glm/glm.hpp>
-
 namespace GPU
 {
 

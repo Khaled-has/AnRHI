@@ -54,8 +54,8 @@ int main(int argc, char argv[])
 		.pEnableDepth = false,
 		.pColorFormats = pColorFormats,
 		.pDepthFormat = RHI::GPU_FORMAT_UNDEFINE,
-		.pWidth = 720,
-		.pHeight = 320
+		.pWidth = 1440,
+		.pHeight = 720
 	};
 	RHI::GPU_RenderPass* pRenPassDrawObjs = RHI::CreateRenderPass(pRenPassInfo);
 

@@ -40,6 +40,24 @@ namespace GPU
 		pSampler = CreateTextureSampler(MinFilter, MaxFilter, AddressMode);
 	}
 
+	void VK_Texture::Read(const void* pPixels, int w, int h)
+	{
+		// # Step 1: create the image object and populate it with pixels
+		VkFormat Format = VK_FORMAT_R8G8B8A8_UNORM; // Hard coded for now.
+		CreateTextureImageFromData(pPixels, Format, false); // Hard coded for now.
+
+		// # Step 2: create image view
+		VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT; // Hard coded for now
+		pView = CreateImageView(pImage, Format, AspectFlags, false);
+
+		VkFilter MinFilter = VK_FILTER_LINEAR;
+		VkFilter MaxFilter = VK_FILTER_LINEAR;
+		VkSamplerAddressMode AddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+		// # Step 3: create the texture sampler
+		pSampler = CreateTextureSampler(MinFilter, MaxFilter, AddressMode);
+	}
+
 	void VK_Texture::Destroy()
 	{
 		const VkDevice& pDevice = VK_Backend::Get()->GetDevice().GetDevice();

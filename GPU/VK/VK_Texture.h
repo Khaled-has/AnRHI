@@ -15,13 +15,12 @@ namespace GPU
 	{
 	public:
 		VK_Texture() {}
-		VK_Texture(const char* pFilename)
-		{
-			Create(pFilename);
-		}
+		VK_Texture(const char* pFilename) { Create(pFilename); }
+		VK_Texture(const void* pPixels, int w, int h) { Read(pPixels, w, h); }
 		~VK_Texture() {}
 
 		virtual void Create(const char* pFilename) override;
+		virtual void Read(const void* pPixels, int w, int h) override;
 		virtual void Destroy() override;
 
 		inline const VkImage& GetImage() const { return pImage; }
