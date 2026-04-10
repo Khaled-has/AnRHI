@@ -26,6 +26,13 @@ namespace GPU {
 		virtual void Backend_Init() override;
 		virtual void Backend_Exit() override;
 
+#ifdef RHI_IMGUI_ENABLE
+		virtual void ImGui_Init() override;
+		virtual void ImGui_Exit() override;
+
+		virtual void ImGui_Rendering() override;
+#endif
+
 		virtual void BeginRecord() override;
 		virtual void EndRecord(RHI::GPU_RenderPass* pFinalRenderPass) override;
 
@@ -38,7 +45,7 @@ namespace GPU {
 		/*	# The backend cores	 */
 		inline const VK_Device& GetDevice() { return pDevice; }
 		inline const VK_SwapChain& GetSwapChain() { return pSwapChain; }
-		inline const VK_CommandBufferPool& GetCmdBufPool() { return pCmdBufPool; }
+		inline const VK_CommandBufferPool& GetCmdBufPool() const { return pCmdBufPool; }
 		inline VK_Queue& GetQueue() { return pQueue; }
 		inline const VK_Thread& GetLoadThread() { return pLoadThread; }
 

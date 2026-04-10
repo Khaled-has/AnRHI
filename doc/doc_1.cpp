@@ -35,7 +35,7 @@ int main(int argc, char argv[])
 	RHI::GPU_Draw* pDrawCmd = RHI::CreateDraw();
 	pDrawCmd->SetBuffer(pVertexBuffer, RHI::GPU_BUFFER_TYPE_STATIC, 0);
 
-	// # When you finsh init the bindings
+	// # When you finish init the bindings
 	pDrawCmd->InitBindings();
 
 	// # Step 3: create the shader 

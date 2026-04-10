@@ -59,6 +59,22 @@ namespace GPU {
 		pDevice.Destroy();
 	}
 
+#ifdef RHI_IMGUI_ENABLE
+
+	void VK_Backend::ImGui_Init()
+	{
+	}
+
+	void VK_Backend::ImGui_Exit()
+	{
+	}
+
+	void VK_Backend::ImGui_Rendering()
+	{
+	}
+
+#endif
+
 	void VK_Backend::BeginRendering()
 	{
 		pQueue.AcquireNextImage();

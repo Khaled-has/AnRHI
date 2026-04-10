@@ -20,6 +20,14 @@ set(VULKAN_PATH "${EXTERN_DIR}/Vulkan")
 list(APPEND CMAKE_PREFIX_PATH "${EXTERN_DIR}/SDL3")
 find_package(SDL3 REQUIRED CONFIG COMPONENTS SDL3)
 
+# ImGui
+file(GLOB_RECURSE IMGUI_SOURCES
+	CONFIGURE_DEPENDS
+		"${EXTERN_DIR}/ImGui/*.cpp"
+)
+
+add_library(ImGui_Core OBJECT ${IMGUI_SOURCES})
+
 # AnRHI
 file(GLOB_RECURSE ANRHI_SOURCES
 	CONFIGURE_DEPENDS
@@ -38,6 +46,10 @@ target_include_directories(AnRHI_Core PUBLIC
 
 	# Window libraries
 	"${EXTERN_DIR}/SDL3/include"
+)
+
+target_link_libraries(AnRHI_Core PRIVATE
+	ImGui_Core
 )
 
 target_compile_definitions(AnRHI_Core PUBLIC

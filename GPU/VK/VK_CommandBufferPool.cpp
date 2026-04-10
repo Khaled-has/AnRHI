@@ -28,7 +28,7 @@ namespace GPU
 		vkDestroyCommandPool(VK_Backend::Get()->GetDevice().GetDevice(), pCommandPool, NULL);
 	}
 
-	void VK_CommandBufferPool::CreateCommandBuffers(uint32_t Count, VkCommandBuffer* CmdBufs)
+	void VK_CommandBufferPool::CreateCommandBuffers(uint32_t Count, VkCommandBuffer* CmdBufs) const
 	{
 		VkCommandBufferAllocateInfo AllocateInfo = {
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,

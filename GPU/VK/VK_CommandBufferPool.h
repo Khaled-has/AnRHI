@@ -19,7 +19,7 @@ namespace GPU
 		void Create();
 		void Destroy();
 
-		void CreateCommandBuffers(uint32_t Count, VkCommandBuffer* CmdBufs);
+		void CreateCommandBuffers(uint32_t Count, VkCommandBuffer* CmdBufs) const;
 		void FreeCommandBuffers(uint32_t Count, VkCommandBuffer* CmdBufs);
 
 	private:
