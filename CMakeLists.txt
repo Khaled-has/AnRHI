@@ -48,9 +48,9 @@ target_include_directories(AnRHI_Core PUBLIC
 	"${EXTERN_DIR}/SDL3/include"
 )
 
-target_link_libraries(AnRHI_Core PRIVATE
-	ImGui_Core
-)
+#target_link_libraries(AnRHI_Core PRIVATE
+#	ImGui_Core
+#)
 
 target_compile_definitions(AnRHI_Core PUBLIC
 	GPU_DEBUG=TRUE
