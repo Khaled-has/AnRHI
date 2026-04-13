@@ -13,23 +13,6 @@
 namespace GPU
 {
 
-	struct VK_FrameImage
-	{
-		std::vector<VkImage> pImages;
-		std::vector<VkImageView> pViews;
-		std::vector<VkSampler> pSamplers;
-	};
-
-	struct VK_RenderPassDrawInfo
-	{
-		bool pEnableColor;
-		bool pEnableDepth;
-		std::vector<VkFormat> pColorFormats;
-		VkFormat pDepthFormat;
-		uint32_t pWidth;
-		uint32_t pHeight;
-	};
-
 	class VK_RenderPass : public RHI::GPU_RenderPass
 	{
 	public:
@@ -48,35 +31,27 @@ namespace GPU
 		void StartPass(const VkCommandBuffer& pCmdBuf, uint32_t ImageIndex);
 		void EndPass(const VkCommandBuffer& pCmdBuf, uint32_t ImageIndex);
 
-		inline const VK_FrameImage& GetFrameImage() const { return pFrameImage; }
-
 	private:
-		RHI::GPU_RenderPassInfo pCreateInfo;
+		RHI::GPU_RenderPassInfo pRenderPassInfo;
 		RHI::GPU_Clear pClearValue;
 
-		struct Image_Data
+		struct Frame_Data
 		{
-			std::vector<VkImage> pImages;
-			std::vector<VkSampler> pSamplers;
-			std::vector<VkImageView> pImageViews;
-			std::vector<VkDeviceMemory> pMemories;
+			std::vector<VkImage> pColorImages;
+			std::vector<VkImageView> pColorImageViews;
+			std::vector<VkFormat> pColorImageFormats;
+
+			VkImage pDepthImage;
+			VkImageView pDepthImageView;
+			VkFormat pDepthFormat;
 		};
 
-		Image_Data pColorImages;
-		Image_Data pDepthImages;
+		std::vector<Frame_Data> pImageFrames;
 
 		VkRenderPass pRenderPass = VK_NULL_HANDLE;
 		std::vector<VkFramebuffer> pFramebuffers;
 
-		VK_FrameImage pFrameImage;
-		VK_RenderPassDrawInfo pDrawInfo;
-
-		virtual void Create(const RHI::GPU_RenderPassInfo pInfo) override;
-
-		void CreateColorImages();
-		void CreateDepthImages();
-
-		void CreateDrawInfo();
+		virtual void Create(const RHI::GPU_RenderPassInfo& pInfo) override;
 
 		void CreateFramebuffers();
 		void CreateRenderPass();

@@ -234,23 +234,30 @@ namespace GPU
 		vkCmdBeginRendering(CmdBuf, &RenderingInfo);
 	}
 
-	void BeginDynamicRendering(const VkCommandBuffer& CmdBuf, const VkImageView* pColorView, const VkImageView* pDepthView, uint32_t ImageIndex, VkClearValue* pClearColor, VkClearValue* pDepthValue, bool IsColorAttch, bool IsDepthTest)
+	void BeginDynamicRendering(const VkCommandBuffer& CmdBuf, const VkImageView* pColorView, uint32_t pColorCount, const VkImageView* pDepthView, VkClearValue* pClearColor, VkClearValue* pDepthValue, bool IsColorAttch, bool IsDepthTest, RHI::GPU_RenderArea pArea)
 	{
-		VkRenderingAttachmentInfoKHR ColorAttachment = {
-			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-			.pNext = NULL,
-			.imageView = *pColorView,
-			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			.resolveMode = VK_RESOLVE_MODE_NONE,
-			.resolveImageView = VK_NULL_HANDLE,
-			.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-			.loadOp = pClearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD,
-			.storeOp = VK_ATTACHMENT_STORE_OP_STORE
-		};
 
-		if (IsColorAttch)
+		std::vector <VkRenderingAttachmentInfoKHR> ColorAttachments;
+		for (uint32_t i = 0; i < pColorCount; i++)
 		{
-			ColorAttachment.clearValue = *pClearColor;
+			VkRenderingAttachmentInfoKHR ColorAttach = {
+				.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+				.pNext = NULL,
+				.imageView = *pColorView,
+				.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				.resolveMode = VK_RESOLVE_MODE_NONE,
+				.resolveImageView = VK_NULL_HANDLE,
+				.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+				.loadOp = pClearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD,
+				.storeOp = VK_ATTACHMENT_STORE_OP_STORE
+			};
+
+			if (IsColorAttch)
+			{
+				ColorAttach.clearValue = *pClearColor;
+			}
+
+			ColorAttachments.push_back(ColorAttach);
 		}
 
 		VkRenderingAttachmentInfo DepthAttachment = {
@@ -270,66 +277,16 @@ namespace GPU
 			DepthAttachment.clearValue = *pDepthValue;
 		}
 
-		auto pWinSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
-
 		VkRenderingInfoKHR RenderingInfo = {
 			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
-			.renderArea = {{0, 0}, { pWinSize.pWidth, pWinSize.pHeight }},
+			.renderArea = {
+				.offset{.x = (int32_t)pArea.pOffset.x, .y = (int32_t)pArea.pOffset.y },
+				.extent{ .width = pArea.pExtent.width, .height = pArea.pExtent.height }
+			},
 			.layerCount = 1,
 			.viewMask = 0,
-			.colorAttachmentCount = 1,
-			.pColorAttachments = &ColorAttachment,
-			.pDepthAttachment = IsDepthTest ? &DepthAttachment : VK_NULL_HANDLE
-		};
-
-		vkCmdBeginRendering(CmdBuf, &RenderingInfo);
-	}
-
-	void BeginDynamicRendering(const VkCommandBuffer& CmdBuf, const VkImageView* pColorView, const VkImageView* pDepthView, uint32_t ImageIndex, VkClearValue* pClearColor, VkClearValue* pDepthValue, bool IsColorAttch, bool IsDepthTest, uint32_t pWidth, uint32_t pHeight)
-	{
-		VkRenderingAttachmentInfoKHR ColorAttachment = {
-			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-			.pNext = NULL,
-			.imageView = *pColorView,
-			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			.resolveMode = VK_RESOLVE_MODE_NONE,
-			.resolveImageView = VK_NULL_HANDLE,
-			.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-			.loadOp = pClearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD,
-			.storeOp = VK_ATTACHMENT_STORE_OP_STORE
-		};
-
-		if (IsColorAttch)
-		{
-			ColorAttachment.clearValue = *pClearColor;
-		}
-
-		VkRenderingAttachmentInfo DepthAttachment = {
-			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			.pNext = NULL,
-			.imageView = IsDepthTest ? *pDepthView : VK_NULL_HANDLE,
-			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			.resolveMode = VK_RESOLVE_MODE_NONE,
-			.resolveImageView = VK_NULL_HANDLE,
-			.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-			.loadOp = pDepthValue ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD,
-			.storeOp = VK_ATTACHMENT_STORE_OP_STORE
-		};
-
-		if (IsDepthTest)
-		{
-			DepthAttachment.clearValue = *pDepthValue;
-		}
-
-		auto pWinSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
-
-		VkRenderingInfoKHR RenderingInfo = {
-			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
-			.renderArea = {{0, 0}, { pWidth, pHeight }},
-			.layerCount = 1,
-			.viewMask = 0,
-			.colorAttachmentCount = 1,
-			.pColorAttachments = &ColorAttachment,
+			.colorAttachmentCount = pColorCount,
+			.pColorAttachments = ColorAttachments.data(),
 			.pDepthAttachment = IsDepthTest ? &DepthAttachment : VK_NULL_HANDLE
 		};
 
@@ -570,5 +527,25 @@ namespace GPU
 			exit(1);
 		}
 		return 0;
+	}
+
+	VkFormat TranslateGPUFormatToVulkanFormat(RHI::GPU_Format pFormat)
+	{
+		switch (pFormat)
+		{
+		case RHI::GPU_FORMAT_COLOR_BGRA8:
+			return VK_FORMAT_B8G8R8A8_UNORM;
+
+		case RHI::GPU_FORMAT_COLOR_RGBA8:
+			return VK_FORMAT_R8G8B8A8_UNORM;
+
+		case RHI::GPU_FORMAT_D32_FLOAT:
+			return VK_FORMAT_D32_SFLOAT;
+
+		default:
+			return VK_FORMAT_UNDEFINED;
+		}
+
+		return VK_FORMAT_UNDEFINED;
 	}
 }

@@ -31,7 +31,6 @@ namespace GPU
 		VK_BindingInfoType pBindingType;
 		const VK_Buffer* pBuffer;
 		const VK_Texture* pTexture;
-		const VK_FrameImage pFrameImage;
 		std::vector<VK_BufferAndMemory> pUniformBuffers;
 	};
 
@@ -55,8 +54,6 @@ namespace GPU
 		std::vector<VkDescriptorSet> pDescriptorSets;
 		VkDescriptorSetLayout pDescriptorSetLayout = VK_NULL_HANDLE;
 		VkDescriptorPool pDescriptorPool		   = VK_NULL_HANDLE;
-
-		VK_RenderPassDrawInfo pUsedDrawInfo;
 
 		void CreateDescriptorPool(const std::vector<VK_PipelineBinding>* pBindingsInfo);
 		void CreateDescriptorLayout(const std::vector<VK_PipelineBinding>* pBindingsInfo);

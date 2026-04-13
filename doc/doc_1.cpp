@@ -47,37 +47,47 @@ int main(int argc, char argv[])
 		);
 
 	// # Step 4: create the render pass
-	const std::vector<RHI::GPU_Format> pColorFormats = { RHI::GPU_FORMAT_COLOR_RGBA8 };
+	RHI::GPU_Texture* pColorTextureAttach = RHI::CreateTexture();
+	pColorTextureAttach->BindData(
+		RHI::GPU_TEXTURE_TYPE_2D,
+		nullptr,
+		1440, 720,
+		RHI::GPU_FORMAT_COLOR_BGRA8,
+		RHI::GPU_TEXTURE_STATE_DYNAMIC
+	);
 
 	RHI::GPU_RenderPassInfo pRenPassInfo = {
 		.pEnableColor = true,
 		.pEnableDepth = false,
-		.pColorFormats = pColorFormats,
-		.pDepthFormat = RHI::GPU_FORMAT_UNDEFINE,
-		.pWidth = 1440,
-		.pHeight = 720
+		.pColorTexCount = 1,
+		.pColorTextures = pColorTextureAttach,
+		.pDepthTexture = nullptr,
+		.pRenderArea = {
+			.pOffset { .x = 0, .y = 0 },
+			.pExtent{ .width = 1440, .height = 720 }
+		}
 	};
-	RHI::GPU_RenderPass* pRenPassDrawObjs = RHI::CreateRenderPass(pRenPassInfo);
 
+	RHI::GPU_RenderPass* pRenPassDrawObjs = RHI::CreateRenderPass(pRenPassInfo);
 	// # Step 5: record the draw commands on the render pass
 	pBackend->BeginRecord();
-
+	
 	// # Start the render pass
 	pRenPassDrawObjs->Begin(
 		RHI::GPU_Clear{ .pColor{0, 0, 0, 1}, .pDepth{.depth = 1.0f, .stencil = 0} }
 	);
-
+	
 	// # Active the shader before you submit the draw command
 	pShader->Active();
 
 	// # Draw command for draw the data you include it on it
 	pDrawCmd->Draw(0, 3);
-
+	
 	// # End the render pass
 	pRenPassDrawObjs->End();
-
+	
 	// # Set the final render pass you want to render it on the screen
-	pBackend->EndRecord(pRenPassDrawObjs);
+	pBackend->EndRecord(pColorTextureAttach);
 
 	SDL_Event pEv;
 	bool pRunning = true;
@@ -101,9 +111,12 @@ int main(int argc, char argv[])
 
 	// # Destroy the RHI components
 	pVertexBuffer->Destroy();
-	pDrawCmd->Destroy();
-	pRenPassDrawObjs->Destroy();
+	pColorTextureAttach->Destroy();
+
 	pShader->Destroy();
+	pDrawCmd->Destroy();
+
+	pRenPassDrawObjs->Destroy();
 
 	pBackend->Backend_Exit();
 

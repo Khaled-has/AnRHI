@@ -6,7 +6,7 @@
 
 namespace RHI
 {
-	GPU_RenderPass* CreateRenderPass(GPU_RenderPassInfo pInfo)
+	GPU_RenderPass* CreateRenderPass(const GPU_RenderPassInfo& pInfo)
 	{
 		GPU_BACKEND_TYPES BType = GPU_Backend::GetBackendType();
 

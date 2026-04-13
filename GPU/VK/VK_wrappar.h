@@ -7,6 +7,8 @@
 
 #include "GPU_Log.h"
 
+#include "GPU_Texture.h"
+
 #define VK_CHECK(_des, _res) if (_res != VK_SUCCESS) GPU_LOG_ERROR("GPU ( VK Backend ) Error: {0}  \n\t   at line ( {1} )  \n\t   file ( {2} )", _des, __LINE__, __FILE__);
 
 #define VK_LOG_INFO(...) GPU_LOG_INFO(""); GPU_LOG_INFO("GPU : VK_Backend # "); GPU_LOG_INFO(__VA_ARGS__);
@@ -24,10 +26,8 @@ namespace GPU
 
 	void BeginDynamicRendering(const VkCommandBuffer& CmdBuf, uint32_t ImageIndex, VkClearValue* pClearColor, VkClearValue* pDepthValue, bool IsDepthTest);
 
-	void BeginDynamicRendering(const VkCommandBuffer& CmdBuf, const VkImageView* pColorView, const VkImageView* pDepthView, uint32_t ImageIndex, VkClearValue* pClearColor, VkClearValue* pDepthValue, bool IsColorAttch, bool IsDepthTest);
-
-	void BeginDynamicRendering(const VkCommandBuffer& CmdBuf, const VkImageView* pColorView, const VkImageView* pDepthView, uint32_t ImageIndex, VkClearValue* pClearColor, VkClearValue* pDepthValue, bool IsColorAttch, bool IsDepthTest, uint32_t pWidth, uint32_t pHeight);
-
+	void BeginDynamicRendering(const VkCommandBuffer& CmdBuf, const VkImageView* pColorView, uint32_t pColorCount, const VkImageView* pDepthView, VkClearValue* pClearColor, VkClearValue* pDepthValue, bool IsColorAttch, bool IsDepthTest, RHI::GPU_RenderArea pArea);
+	
 	VK_BufferAndMemory CreateBuffer(size_t pSize, VkBufferUsageFlags pUsage, VkMemoryPropertyFlags pMemProp);
 
 	void CopyBuffer(VkBuffer pDst, VkBuffer pSrc, VkDeviceSize pSize);
@@ -42,5 +42,8 @@ namespace GPU
 	void CopyBufferToImage(VkImage Dst, VkBuffer Src, uint32_t ImageWidth, uint32_t ImageHeight, VkDeviceSize LayerSize, int LayerCount);
 
 	int GetBytesPerTexFormat(VkFormat Format);
+
+	VkFormat TranslateGPUFormatToVulkanFormat(RHI::GPU_Format pFormat);
+
 }
 #endif

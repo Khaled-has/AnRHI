@@ -34,7 +34,7 @@ namespace GPU {
 #endif
 
 		virtual void BeginRecord() override;
-		virtual void EndRecord(RHI::GPU_RenderPass* pFinalRenderPass) override;
+		virtual void EndRecord(const RHI::GPU_Texture* pFinalTexture) override;
 
 		virtual void BeginRendering() override;
 		virtual void EndRendering() override;
@@ -54,7 +54,7 @@ namespace GPU {
 
 		std::vector<std::function<void(VkCommandBuffer, uint32_t)>>* GetDrawCmdsArray();
 
-		VK_RenderPassDrawInfo& GetCurrentDrawInfo() { return pCurrentRenderPassDrawInfo; }
+		RHI::GPU_RenderPassInfo& GetCurrentRenderPassInfo() { return pCurrentRenderPassInfo; }
 		inline VkRenderPass& GetCurrentRenderPass() { return pCurrentRenderPass; }
 		inline VK_Shader& GetCurrentShader() { return pCurrentShader; }
 	private:
@@ -68,7 +68,7 @@ namespace GPU {
 
 		VkRenderPass pCurrentRenderPass = VK_NULL_HANDLE;
 		VK_Shader pCurrentShader;
-		VK_RenderPassDrawInfo pCurrentRenderPassDrawInfo{};
+		RHI::GPU_RenderPassInfo pCurrentRenderPassInfo{};
 
 		std::vector<VkCommandBuffer> pCmdBufs;
 		VkCommandBuffer pCopyCmdBuf = VK_NULL_HANDLE;	// It's hard coded, I will use another thread later on.
@@ -80,7 +80,7 @@ namespace GPU {
 		VK_Shader pScreenImageShader;
 		VK_GraphicsPipeline pScreenImagePipeline;
 
-		void CreateScreenImageResources(VK_RenderPass* pFinalFrame);
+		void CreateScreenImageResources(const VK_Texture* pFinalTexture);
 	};
 
 	inline VK_Backend* CreateVulkanBackend()

@@ -13,39 +13,19 @@ namespace GPU
 		const VkDevice& pDevice = VK_Backend::Get()->GetDevice().GetDevice();
 		const bool IsDynamic = VK_Backend::Get()->GetDevice().GetSelectedDevice().pIsDynamicSupported;
 
-		for (uint32_t i = 0; i < pColorImages.pImages.size(); i++)
-		{
-			if (!IsDynamic)
-			{
-				vkDestroyFramebuffer(pDevice, pFramebuffers[i], NULL);
-			}
-
-			if (pDrawInfo.pEnableColor)
-			{
-				vkFreeMemory(pDevice, pColorImages.pMemories[i], NULL);
-				vkDestroySampler(pDevice, pColorImages.pSamplers[i], NULL);
-				vkDestroyImageView(pDevice, pColorImages.pImageViews[i], NULL);
-				vkDestroyImage(pDevice, pColorImages.pImages[i], NULL);
-			}
-			if (pDrawInfo.pEnableDepth)
-			{
-				vkFreeMemory(pDevice, pDepthImages.pMemories[i], NULL);
-				vkDestroySampler(pDevice, pDepthImages.pSamplers[i], NULL);
-				vkDestroyImageView(pDevice, pDepthImages.pImageViews[i], NULL);
-				vkDestroyImage(pDevice, pDepthImages.pImages[i], NULL);
-			}
-		}
-
 		if (!IsDynamic)
 		{
 			vkDestroyRenderPass(pDevice, pRenderPass, NULL);
+
+			for (uint32_t i = 0; i < pFramebuffers.size(); i++)
+				vkDestroyFramebuffer(pDevice, pFramebuffers[i], NULL);
 		}
 	}
 
 	void VK_RenderPass::Begin(RHI::GPU_Clear pClear)
 	{
-		VK_Backend::Get()->GetCurrentDrawInfo() = pDrawInfo;
-		VK_Backend::Get()->GetCurrentRenderPass() = pRenderPass;
+		VK_Backend::Get()->GetCurrentRenderPassInfo() = pRenderPassInfo;
+		VK_Backend::Get()->GetCurrentRenderPass()	  = pRenderPass;
 		pClearValue = pClear;
 
 		VK_Backend::Get()->GetDrawCmdsArray()->push_back(
@@ -65,8 +45,8 @@ namespace GPU
 			}
 		);
 
-		VK_RenderPassDrawInfo pNullDrawInfo{};
-		VK_Backend::Get()->GetCurrentDrawInfo() = pNullDrawInfo;
+		RHI::GPU_RenderPassInfo pNullDrawInfo{};
+		VK_Backend::Get()->GetCurrentRenderPassInfo() = pNullDrawInfo;
 		VK_Backend::Get()->GetCurrentRenderPass() = VK_NULL_HANDLE;
 	}
 
@@ -77,12 +57,15 @@ namespace GPU
 		// # Begin with dynamic 
 		if (IsDynamic)
 		{
-			if (pDrawInfo.pEnableColor)
+			if (pRenderPassInfo.pEnableColor)
 			{
-				ImageMemBarrier(
-					pCmdBuf, pColorImages.pImages[ImageIndex], pDrawInfo.pColorFormats[0],
-					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 1
-				);
+				for (uint32_t i = 0; i < pImageFrames[ImageIndex].pColorImages.size(); i++)
+				{
+					ImageMemBarrier(
+						pCmdBuf, pImageFrames[ImageIndex].pColorImages[i], pImageFrames[ImageIndex].pColorImageFormats[i],
+						VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 1
+					);
+				}
 			}
 
 			auto pC = pClearValue.pColor;
@@ -91,13 +74,12 @@ namespace GPU
 			VkClearValue clearDepth = { .depthStencil{.depth = pD.depth, .stencil = pD.stencil} };
 
 			BeginDynamicRendering(
-				pCmdBuf, 
-				pDrawInfo.pEnableColor ? &pColorImages.pImageViews[ImageIndex] : NULL, 
-				pDrawInfo.pEnableDepth ? &pDepthImages.pImageViews[ImageIndex] : NULL, 
-				ImageIndex, 
-				&clearColor, &clearDepth, 
-				pDrawInfo.pEnableColor, pDrawInfo.pEnableDepth,
-				pDrawInfo.pWidth, pDrawInfo.pHeight
+				pCmdBuf,
+				pImageFrames[ImageIndex].pColorImageViews.data(), (uint32_t)pImageFrames[ImageIndex].pColorImageViews.size(),
+				&pImageFrames[ImageIndex].pDepthImageView,
+				&clearColor, &clearDepth,
+				pRenderPassInfo.pEnableColor, pRenderPassInfo.pEnableDepth,
+				pRenderPassInfo.pRenderArea
 			);
 		}
 		// # Begin with render pass
@@ -105,22 +87,22 @@ namespace GPU
 		{
 			// # Clear components
 			uint32_t pClearValueCount = 0;
-			pClearValueCount += pDrawInfo.pEnableColor ? 1 : 0;
-			pClearValueCount += pDrawInfo.pEnableDepth ? 1 : 0;
+			pClearValueCount += pRenderPassInfo.pEnableColor ? 1 : 0;
+			pClearValueCount += pRenderPassInfo.pEnableDepth ? 1 : 0;
 
 			std::array<VkClearValue, 2> pClearValues;
-			if (pDrawInfo.pEnableColor)
+			if (pRenderPassInfo.pEnableColor)
 			{
 				auto pC = pClearValue.pColor;
 				pClearValues[0].color = { pC.r, pC.g, pC.b, pC.a };
 
-				if (pDrawInfo.pEnableDepth)
+				if (pRenderPassInfo.pEnableDepth)
 				{
 					auto pD = pClearValue.pDepth;
 					pClearValues[1].depthStencil = { .depth = pD.depth, .stencil = pD.stencil };
 				}
 			}
-			else if (pDrawInfo.pEnableDepth)
+			else if (pRenderPassInfo.pEnableDepth)
 			{
 				auto pD = pClearValue.pDepth;
 				pClearValues[0].depthStencil = { .depth = pD.depth, .stencil = pD.stencil };
@@ -133,8 +115,8 @@ namespace GPU
 				.renderPass = pRenderPass,
 				.framebuffer = pFramebuffers[ImageIndex],
 				.renderArea = {
-					.offset = {.x = 0, .y = 0}, // It's hard code for now
-					.extent = {.width = pDrawInfo.pWidth, .height = pDrawInfo.pHeight }
+					.offset = { .x = (int32_t)pRenderPassInfo.pRenderArea.pOffset.x, .y = (int32_t)pRenderPassInfo.pRenderArea.pOffset.y },
+					.extent = {.width = pRenderPassInfo.pRenderArea.pExtent.width, .height = pRenderPassInfo.pRenderArea.pExtent.height }
 				},
 				.clearValueCount = pClearValueCount,
 				.pClearValues = &pClearValues[0],
@@ -154,12 +136,15 @@ namespace GPU
 		{
 			vkCmdEndRendering(pCmdBuf);
 
-			if (pDrawInfo.pEnableColor)
+			if (pRenderPassInfo.pEnableColor)
 			{
-				ImageMemBarrier(
-					pCmdBuf, pColorImages.pImages[ImageIndex], pDrawInfo.pColorFormats[0],
-					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1
-				);
+				for (uint32_t i = 0; i < pImageFrames[ImageIndex].pColorImages.size(); i++)
+				{
+					ImageMemBarrier(
+						pCmdBuf, pImageFrames[ImageIndex].pColorImages[i], pImageFrames[ImageIndex].pColorImageFormats[i],
+						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1
+					);
+				}
 			}
 		}
 		// # End with render pass
@@ -169,18 +154,48 @@ namespace GPU
 		}
 	}
 
-	void VK_RenderPass::Create(const RHI::GPU_RenderPassInfo pInfo)
+	void VK_RenderPass::Create(const RHI::GPU_RenderPassInfo& pInfo)
 	{
-		pCreateInfo = pInfo;
-		CreateDrawInfo();
+		pRenderPassInfo = pInfo;
 
-		if (pInfo.pEnableColor)
+		// # Create image frames
+		for (uint32_t i = 0; i < VK_Backend::Get()->GetSwapChain().GetImageCount(); i++)
 		{
-			CreateColorImages();
-		}
-		if (pInfo.pEnableDepth)
-		{
-			CreateDepthImages();
+			Frame_Data pFrameData;
+
+			if (pInfo.pEnableColor)
+			{
+				for (uint32_t j = 0; j < pInfo.pColorTexCount; j++)
+				{
+					const VK_Texture* pTex = reinterpret_cast<const VK_Texture*>(&pInfo.pColorTextures[j]);
+					// # Get color images & image views
+					pFrameData.pColorImages.push_back(
+						pTex->GetImage(i)
+					);
+
+					pFrameData.pColorImageViews.push_back(
+						pTex->GetView(i)
+					);
+
+					pFrameData.pColorImageFormats.push_back(
+						pTex->GetFormat()
+					);
+
+				}
+			}
+
+			// # Get depth image & image view
+			if (pInfo.pEnableDepth)
+			{
+				const VK_Texture* pTexDepth = reinterpret_cast<const VK_Texture*>(pInfo.pDepthTexture);
+
+				pFrameData.pDepthImage = pTexDepth->GetImage(i);
+				pFrameData.pDepthImageView = pTexDepth->GetView(i);
+				pFrameData.pDepthFormat = pTexDepth->GetFormat();
+			}
+
+			// # Add the frame 
+			pImageFrames.push_back(pFrameData);
 		}
 
 		const bool pIsDynamic = VK_Backend::Get()->GetDevice().GetSelectedDevice().pIsDynamicSupported;
@@ -192,216 +207,6 @@ namespace GPU
 		}
 	}
 
-	void VK_RenderPass::CreateColorImages()
-	{
-		const uint32_t NumImages = VK_Backend::Get()->GetSwapChain().GetImageCount();
-		const VkDevice& pDevice = VK_Backend::Get()->GetDevice().GetDevice();
-
-		VkFormat pFormat = pDrawInfo.pColorFormats[0];
-
-		// # Step 1: create the images
-		pColorImages.pImages.resize(NumImages);
-		pColorImages.pMemories.resize(NumImages);
-		for (uint32_t i = 0; i < pColorImages.pImages.size(); i++)
-		{
-			VkImageUsageFlags Usage = (VkImageUsageFlagBits)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-			VkMemoryPropertyFlagBits PropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-
-			VkImageCreateInfo ImageInfo = {
-				.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-				.pNext = NULL,
-				.flags = (VkImageCreateFlags)0,
-				.imageType = VK_IMAGE_TYPE_2D,
-				.format = pFormat,
-				.extent = VkExtent3D{ .width = pDrawInfo.pWidth, .height = pDrawInfo.pHeight, .depth = 1 },
-				.mipLevels = 1,
-				.arrayLayers = 1,
-				.samples = VK_SAMPLE_COUNT_1_BIT,
-				.tiling = VK_IMAGE_TILING_OPTIMAL,
-				.usage = Usage,
-				.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-				.queueFamilyIndexCount = 0,
-				.pQueueFamilyIndices = NULL,
-				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
-			};
-
-			// # 1 Create the image object
-			VkResult res = vkCreateImage(pDevice, &ImageInfo, NULL, &pColorImages.pImages[i]);
-			VK_CHECK("vkCreateImage: VK_RenderPass", res);
-
-			// # 2 Get the buffer memory requirements
-			VkMemoryRequirements MemReqs = { 0 };
-			vkGetImageMemoryRequirements(pDevice, pColorImages.pImages[i], &MemReqs);
-
-			// # Step 3: get the memory type index
-			uint32_t MemoryTypeIndex = GetMemoryTypeIndex(MemReqs.memoryTypeBits, PropertyFlags);
-
-			// # Step 4: allocate memory
-			VkMemoryAllocateInfo MemAllocInfo = {
-				.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-				.pNext = NULL,
-				.allocationSize = MemReqs.size,
-				.memoryTypeIndex = MemoryTypeIndex
-			};
-
-			res = vkAllocateMemory(pDevice, &MemAllocInfo, NULL, &pColorImages.pMemories[i]);
-			VK_CHECK("vkAllocateMemory", res);
-
-			// # Step 5: bind memory
-			res = vkBindImageMemory(pDevice, pColorImages.pImages[i], pColorImages.pMemories[i], 0);
-			VK_CHECK("vkBindImageMemory", res);
-		}
-
-		// # Step 2: create image views
-		pColorImages.pImageViews.resize(NumImages);
-		for (uint32_t i = 0; i < pColorImages.pImageViews.size(); i++)
-		{
-			VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-			pColorImages.pImageViews[i] = CreateImageView(pColorImages.pImages[i], pDevice, pFormat, AspectFlags);
-		}
-
-		// # Step 3: create samplers
-		pColorImages.pSamplers.resize(NumImages);
-		for (uint32_t i = 0; i < pColorImages.pSamplers.size(); i++)
-		{
-			VkFilter MinFilter = VK_FILTER_LINEAR;
-			VkFilter MaxFilter = VK_FILTER_LINEAR;
-			VkSamplerAddressMode AddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-			pColorImages.pSamplers[i] = CreateTextureSampler(MinFilter, MaxFilter, AddressMode);
-		}
-
-		pFrameImage.pImages = pColorImages.pImages;
-		pFrameImage.pViews = pColorImages.pImageViews;
-		pFrameImage.pSamplers = pColorImages.pSamplers;
-	}
-
-	void VK_RenderPass::CreateDepthImages()
-	{
-		const uint32_t NumImages = VK_Backend::Get()->GetSwapChain().GetImageCount();
-		const VkDevice& pDevice = VK_Backend::Get()->GetDevice().GetDevice();
-
-		VkFormat pFormat = pDrawInfo.pDepthFormat;
-
-		// # Step 1: create the images
-		pDepthImages.pImages.resize(NumImages);
-		pDepthImages.pMemories.resize(NumImages);
-		for (uint32_t i = 0; i < pDepthImages.pImages.size(); i++)
-		{
-			VkImageUsageFlags Usage = (VkImageUsageFlagBits)(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-			VkMemoryPropertyFlagBits PropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-
-			VkImageCreateInfo ImageInfo = {
-				.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-				.pNext = NULL,
-				.flags = (VkImageCreateFlags)0,
-				.imageType = VK_IMAGE_TYPE_2D,
-				.format = pFormat,
-				.extent = VkExtent3D{.width = pDrawInfo.pWidth, .height = pDrawInfo.pHeight, .depth = 1 },
-				.mipLevels = 1,
-				.arrayLayers = 1,
-				.samples = VK_SAMPLE_COUNT_1_BIT,
-				.tiling = VK_IMAGE_TILING_OPTIMAL,
-				.usage = Usage,
-				.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-				.queueFamilyIndexCount = 0,
-				.pQueueFamilyIndices = NULL,
-				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
-			};
-
-			// # 1 Create the image object
-			VkResult res = vkCreateImage(pDevice, &ImageInfo, NULL, &pDepthImages.pImages[i]);
-			VK_CHECK("vkCreateImage: VK_RenderPass", res);
-
-			// # 2 Get the buffer memory requirements
-			VkMemoryRequirements MemReqs = { 0 };
-			vkGetImageMemoryRequirements(pDevice, pDepthImages.pImages[i], &MemReqs);
-
-			// # Step 3: get the memory type index
-			uint32_t MemoryTypeIndex = GetMemoryTypeIndex(MemReqs.memoryTypeBits, PropertyFlags);
-
-			// # Step 4: allocate memory
-			VkMemoryAllocateInfo MemAllocInfo = {
-				.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-				.pNext = NULL,
-				.allocationSize = MemReqs.size,
-				.memoryTypeIndex = MemoryTypeIndex
-			};
-
-			res = vkAllocateMemory(pDevice, &MemAllocInfo, NULL, &pDepthImages.pMemories[i]);
-			VK_CHECK("vkAllocateMemory", res);
-
-			// # Step 5: bind memory
-			res = vkBindImageMemory(pDevice, pDepthImages.pImages[i], pDepthImages.pMemories[i], 0);
-			VK_CHECK("vkBindImageMemory", res);
-		}
-
-		// # Step 2: create image views
-		pDepthImages.pImageViews.resize(NumImages);
-		for (uint32_t i = 0; i < pDepthImages.pImageViews.size(); i++)
-		{
-			VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-			pDepthImages.pImageViews[i] = CreateImageView(pDepthImages.pImages[i], pDevice, pFormat, AspectFlags);
-		}
-
-		// # Step 3: create samplers
-		pDepthImages.pSamplers.resize(NumImages);
-		for (uint32_t i = 0; i < pDepthImages.pSamplers.size(); i++)
-		{
-			VkFilter MinFilter = VK_FILTER_LINEAR;
-			VkFilter MaxFilter = VK_FILTER_LINEAR;
-			VkSamplerAddressMode AddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-			pDepthImages.pSamplers[i] = CreateTextureSampler(MinFilter, MaxFilter, AddressMode);
-		}
-	}
-
-	void VK_RenderPass::CreateDrawInfo()
-	{
-		pDrawInfo.pEnableColor = pCreateInfo.pEnableColor;
-		pDrawInfo.pEnableDepth = pCreateInfo.pEnableDepth;
-
-		pDrawInfo.pWidth = pCreateInfo.pWidth;
-		pDrawInfo.pHeight = pCreateInfo.pHeight;
-		
-		// # Choose color format
-		if (pDrawInfo.pEnableColor)
-		{
-			for (uint32_t i = 0; i < pCreateInfo.pColorFormats.size(); i++)
-			{	
-				switch (pCreateInfo.pColorFormats[i])
-				{
-
-				case RHI::GPU_FORMAT_COLOR_RGBA8:
-					pDrawInfo.pColorFormats.push_back(VK_FORMAT_R8G8B8A8_UNORM);
-					break;
-
-				case RHI::GPU_FORMAT_COLOR_BGRA8:
-					pDrawInfo.pColorFormats.push_back(VK_FORMAT_B8G8R8A8_UNORM);
-					break;
-
-				default:
-					pDrawInfo.pColorFormats.push_back(VK_FORMAT_UNDEFINED);
-					break;
-				}
-			}
-		}
-		// # Choose depth format
-		if (pDrawInfo.pEnableDepth)
-		{
-			switch (pCreateInfo.pDepthFormat)
-			{
-			case RHI::GPU_FORMAT_D32_FLOAT:
-				pDrawInfo.pDepthFormat = VK_FORMAT_D32_SFLOAT;
-				break;
-
-			default:
-				pDrawInfo.pDepthFormat = VK_FORMAT_UNDEFINED;
-				break;
-			}
-		}
-	}
-
 	void VK_RenderPass::CreateRenderPass()
 	{
 		const VkDevice& pDevice = VK_Backend::Get()->GetDevice().GetDevice();
@@ -409,45 +214,59 @@ namespace GPU
 		// # Color attachments
 		std::vector<VkAttachmentDescription> pColorAttachDescs;
 		std::vector<VkAttachmentReference> pColorAttachRefs;
-		for (uint32_t i = 0; i < pDrawInfo.pColorFormats.size(); i++)
-		{
-			VkAttachmentDescription ColorAttachDesc = {
-				.flags = 0,
-				.format = pDrawInfo.pColorFormats[i],
-				.samples = VK_SAMPLE_COUNT_1_BIT,
-				.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-				.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-				.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-			};
-			pColorAttachDescs.push_back(ColorAttachDesc);
 
-			VkAttachmentReference ColorAttachRef = {
-				.attachment = 0,
-				.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-			};
-			pColorAttachRefs.push_back(ColorAttachRef);
+		if (pRenderPassInfo.pEnableColor)
+		{
+			for (uint32_t i = 0; i < pRenderPassInfo.pColorTexCount; i++)
+			{
+				const VK_Texture* pTexColor = reinterpret_cast<const VK_Texture*>(&pRenderPassInfo.pColorTextures[i]);
+
+				VkAttachmentDescription ColorAttachDesc = {
+					.flags = 0,
+					.format = pTexColor->GetFormat(),
+					.samples = VK_SAMPLE_COUNT_1_BIT,
+					.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+					.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+					.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+					.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+					.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+					.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+				};
+				pColorAttachDescs.push_back(ColorAttachDesc);
+
+				VkAttachmentReference ColorAttachRef = {
+					.attachment = i,
+					.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+				};
+				pColorAttachRefs.push_back(ColorAttachRef);
+			}
 		}
 
 		// # Depth attachment
-		VkAttachmentDescription DepthAttachDesc = {
-			.flags = 0,
-			.format = pDrawInfo.pDepthFormat,
-			.samples = VK_SAMPLE_COUNT_1_BIT,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-			.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-		};
+		VkAttachmentDescription DepthAttachDesc;
+		VkAttachmentReference DepthAttachRef;
 
-		VkAttachmentReference DepthAttachRef = {
-			.attachment = 1,
-			.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-		};
+		if (pRenderPassInfo.pEnableDepth)
+		{
+			const VK_Texture* pTexDepth = reinterpret_cast<const VK_Texture*>(pRenderPassInfo.pDepthTexture);
+
+			DepthAttachDesc = {
+				.flags = 0,
+				.format = pTexDepth->GetFormat(),
+				.samples = VK_SAMPLE_COUNT_1_BIT,
+				.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+				.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+				.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			};
+
+			DepthAttachRef = {
+				.attachment = 1,
+				.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+			};
+		}
 
 		// # Subpass description
 		VkSubpassDescription SubpassDesc = {
@@ -455,10 +274,10 @@ namespace GPU
 			.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
 			.inputAttachmentCount = 0,
 			.pInputAttachments = NULL,
-			.colorAttachmentCount = pDrawInfo.pEnableColor ? (uint32_t)pDrawInfo.pColorFormats.size() : 0,
-			.pColorAttachments = pDrawInfo.pEnableColor ? pColorAttachRefs.data() : NULL,
+			.colorAttachmentCount = pRenderPassInfo.pEnableColor ? pRenderPassInfo.pColorTexCount : 0,
+			.pColorAttachments = pRenderPassInfo.pEnableColor ? pColorAttachRefs.data() : NULL,
 			.pResolveAttachments = NULL,
-			.pDepthStencilAttachment = pDrawInfo.pEnableDepth ? &DepthAttachRef : NULL,
+			.pDepthStencilAttachment = pRenderPassInfo.pEnableDepth ? &DepthAttachRef : NULL,
 			.preserveAttachmentCount = 0,
 			.pPreserveAttachments = NULL
 		};
@@ -466,15 +285,15 @@ namespace GPU
 		std::vector<VkAttachmentDescription> Attachments;
 		
 		// # Color attachments
-		if (pDrawInfo.pEnableColor)
+		if (pRenderPassInfo.pEnableColor)
 		{
-			for (uint32_t i = 0; i < pDrawInfo.pColorFormats.size(); i++)
+			for (uint32_t i = 0; i < pRenderPassInfo.pColorTexCount; i++)
 			{
 				Attachments.push_back(pColorAttachDescs[i]);
 			}
 		}
 		// # Depth attachment
-		if (pDrawInfo.pEnableDepth)
+		if (pRenderPassInfo.pEnableDepth)
 		{
 			Attachments.push_back(DepthAttachDesc);
 		}
@@ -509,28 +328,28 @@ namespace GPU
 			std::vector<VkImageView> Attachments;
 
 			// # Color image views
-			if (pDrawInfo.pEnableColor)
+			if (pRenderPassInfo.pEnableColor)
 			{
-				/*for (uint32_t j = 0; j < pDrawInfo.pColorFormats.size(); j++)
+				for (uint32_t j = 0; j < pImageFrames[i].pColorImages.size(); j++)
 				{
-					uint32_t ImageIndex = NumImages * j + i;
-					Attachments.push_back(pColorImages.pImageViews[ImageIndex]);
-				}*/
-				Attachments.push_back(pColorImages.pImageViews[i]);
+					Attachments.push_back(pImageFrames[i].pColorImageViews[j]);
+				}
 			}
 			// # Depth image view
-			if (pDrawInfo.pEnableDepth)
+			if (pRenderPassInfo.pEnableDepth)
 			{
-				Attachments.push_back(pDepthImages.pImageViews[i]);
+				Attachments.push_back(pImageFrames[i].pDepthImageView);
 			}
+
+			auto ImageSize = reinterpret_cast<const VK_Texture*>(&pRenderPassInfo.pColorTextures[i])->GetImageSize();
 
 			VkFramebufferCreateInfo CreateInfo = {
 				.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
 				.renderPass = pRenderPass,
 				.attachmentCount = (uint32_t)Attachments.size(),
 				.pAttachments = Attachments.data(),
-				.width = pDrawInfo.pWidth,
-				.height = pDrawInfo.pHeight,
+				.width = pRenderPassInfo.pRenderArea.pExtent.width,
+				.height = pRenderPassInfo.pRenderArea.pExtent.height,
 				.layers = 1
 			};
 

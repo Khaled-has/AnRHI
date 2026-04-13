@@ -28,6 +28,11 @@ file(GLOB_RECURSE IMGUI_SOURCES
 
 add_library(ImGui_Core OBJECT ${IMGUI_SOURCES})
 
+target_include_directories(ImGui_Core PUBLIC
+	"${VULKAN_PATH}/Include"
+	"${EXTERN_DIR}/ImGui"
+)
+
 # AnRHI
 file(GLOB_RECURSE ANRHI_SOURCES
 	CONFIGURE_DEPENDS

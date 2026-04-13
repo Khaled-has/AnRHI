@@ -38,7 +38,7 @@ namespace RHI {
 #endif
 
 		virtual void BeginRecord() = 0;
-		virtual void EndRecord(RHI::GPU_RenderPass* pFinalRenderPass) = 0;
+		virtual void EndRecord(const RHI::GPU_Texture* pFinalTexture) = 0;
 
 		virtual void BeginRendering() = 0;
 		virtual void EndRendering() = 0;

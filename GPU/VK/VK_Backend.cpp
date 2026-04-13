@@ -95,7 +95,7 @@ namespace GPU {
 		return &pDrawCmdFuncs;
 	}
 
-	void VK_Backend::CreateScreenImageResources(VK_RenderPass* pFinalFrame)
+	void VK_Backend::CreateScreenImageResources(const VK_Texture* pFinalTexture)
 	{
 		const std::vector<float> pVertices = {
 			//  Pos        UV
@@ -130,8 +130,8 @@ namespace GPU {
 				.pBinding = 1,
 				.pDescType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				.pStageFlag = VK_SHADER_STAGE_FRAGMENT_BIT,
-				.pBindingType = VK_BINDING_FRAME_IMAGE_INFO,
-				.pFrameImage = pFinalFrame->GetFrameImage()
+				.pBindingType = VK_BINDING_IMAGE_INFO,
+				.pTexture = pFinalTexture
 			}
 		);
 
@@ -178,14 +178,25 @@ namespace GPU {
 		pScreenImagePipeline.Create(&pBindings);
 		const std::vector<VkFormat> pColorFormats = { pSwapChain.GetSurfaceFormat().format };
 		auto pWinSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
-		pCurrentRenderPassDrawInfo = {
+
+		RHI::GPU_Texture* pTex = new VK_Texture();
+		reinterpret_cast<VK_Texture*>(pTex)->CreateVKTexture(
+			&pSwapChain.GetImage(0), &pSwapChain.GetImageView(0), pSwapChain.GetImageCount(),
+			pSwapChain.GetSurfaceFormat().format, RHI::GPU_TEXTURE_STATE_DYNAMIC, RHI::GPU_TEXTURE_TYPE_2D
+		);
+
+		pCurrentRenderPassInfo = {
 			.pEnableColor = true,
 			.pEnableDepth = false,
-			.pColorFormats = pColorFormats,
-			.pDepthFormat = VK_FORMAT_UNDEFINED,
-			.pWidth = pWinSize.pWidth,
-			.pHeight = pWinSize.pHeight
+			.pColorTexCount = 1,
+			.pColorTextures = pTex,
+			.pDepthTexture = NULL,
+			.pRenderArea = {
+				.pOffset { .x = 0, .y = 0 },
+				.pExtent { .width = pWinSize.pWidth, .height = pWinSize.pHeight }
+			}
 		};
+
 		pCurrentRenderPass = pSwapChain.GetRenderPass();
 		pCurrentShader = pScreenImageShader;
 		pScreenImagePipeline.CreatePipeline();
@@ -196,10 +207,10 @@ namespace GPU {
 		pDrawCmdFuncs.clear();
 	}
 
-	void VK_Backend::EndRecord(RHI::GPU_RenderPass* pFinalRenderPass)
+	void VK_Backend::EndRecord(const RHI::GPU_Texture* pFinalTexture)
 	{
-		CreateScreenImageResources((VK_RenderPass*)pFinalRenderPass);
-
+		CreateScreenImageResources((const VK_Texture*)pFinalTexture);
+		
 		const VkSurfaceFormatKHR pFormat = VK_Backend::Get()->GetSwapChain().GetSurfaceFormat();
 		const bool pIsDynamicSupported = VK_Backend::Get()->GetDevice().GetSelectedDevice().pIsDynamicSupported;
 		const bool pIsDepthTest = VK_Backend::Get()->GetSwapChain().IsDepthTest();
@@ -229,7 +240,7 @@ namespace GPU {
 			.clearValueCount = pIsDepthTest ? 2u : 1u,
 			.pClearValues = &pClear[0],
 		};
-
+		
 		for (uint32_t i = 0; i < VK_Backend::Get()->GetSwapChain().GetImageCount(); i++)
 		{
 			const VkCommandBuffer& CmdBuf = VK_Backend::Get()->GetCmdBuf(i);
@@ -243,7 +254,7 @@ namespace GPU {
 			{
 				Cmd(CmdBuf, i);
 			}
-
+		
 			// # Begin rendering with Dynamic
 			if (pIsDynamicSupported)
 			{
@@ -252,7 +263,9 @@ namespace GPU {
 					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 1
 				);
 
-				BeginDynamicRendering(CmdBuf, &View, NULL, i, &pClear[0], &pClear[1], true, false);
+				BeginDynamicRendering(
+					CmdBuf, i, &pClear[0], &pClear[1], false
+				);
 			}
 			// # Begin rendering with RenderPass
 			else
@@ -260,7 +273,7 @@ namespace GPU {
 				RenderPassBeginInfo.framebuffer = VK_Backend::Get()->GetSwapChain().GetFramebuffer(i);
 				vkCmdBeginRenderPass(CmdBuf, &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 			}
-
+			
 			// -- # Draw screen image ( up scaling to the window size )
 			pScreenImagePipeline.Bind(i);
 			vkCmdDraw(CmdBuf, 6, 1, 0, 0);

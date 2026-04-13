@@ -4,81 +4,100 @@
 #include "VK_Backend.h"
 #include "VK_Buffer.h"
 
-#include <stb_image.h>
-
 namespace GPU
 {
 
-	void VK_Texture::Create(const char* pFilename)
+	void VK_Texture::BindData(RHI::GPU_TextureType pTexType, const void* pPixels, unsigned int pWidth, unsigned int pHeight, RHI::GPU_Format pFormat, RHI::GPU_TextureState pState)
 	{
-		int w, h, c;
+		ImageWidth = pWidth; ImageHeight = pHeight;
+		pTexFormat = TranslateGPUFormatToVulkanFormat(pFormat);
+		this->pState = pState; this->pType = pTexType;
 
-		// # Step 1: load the image pixels
-		stbi_uc* pPixels = stbi_load(pFilename, &w, &h, &c, STBI_rgb_alpha);
-		ImageWidth = w; ImageHeight = h; ImageChannels = c;
-		if (!pPixels)
+		const uint32_t NumImages = VK_Backend::Get()->GetSwapChain().GetImageCount();
+
+		if (pState == RHI::GPU_TEXTURE_STATE_STATIC)
 		{
-			VK_LOG_ERROR("Error loading texture from {0}", pFilename);
+			pImages.resize(1);
+			pViews.resize(1);
+			pSamplers.resize(1);
+			pMemories.resize(1);
+		}
+		else if (pState == RHI::GPU_TEXTURE_STATE_DYNAMIC)
+		{
+			pImages.resize(NumImages);
+			pViews.resize(NumImages);
+			pSamplers.resize(NumImages);
+			pMemories.resize(NumImages);
 		}
 
-		// # Step 2: create the image object and populate it with pixels
-		VkFormat Format = VK_FORMAT_R8G8B8A8_UNORM; // Hard coded for now.
-		CreateTextureImageFromData(pPixels, Format, false); // Hard coded for now.
+		for (uint32_t i = 0; i < pImages.size(); i++)
+		{
+			// # Step 1: create the image object and populate it with pixels
+			CreateTextureImageFromData(pPixels, pImages[i], pMemories[i], pTexFormat, false); // Hard coded for now.
 
-		// # Step 3: release the image pixels. we don't need them after this point
-		stbi_image_free(pPixels);
+			// # Step 2: create image view
+			VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT; // Hard coded for now
+			pViews[i] = CreateImageView(pImages[i], pTexFormat, AspectFlags, false);
 
-		// # Step 4: create image view
-		VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT; // Hard coded for now
-		pView = CreateImageView(pImage, Format, AspectFlags, false);
+			VkFilter MinFilter = VK_FILTER_LINEAR;
+			VkFilter MaxFilter = VK_FILTER_LINEAR;
+			VkSamplerAddressMode AddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
-		VkFilter MinFilter = VK_FILTER_LINEAR;
-		VkFilter MaxFilter = VK_FILTER_LINEAR;
-		VkSamplerAddressMode AddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-		// # Step 5: create the texture sampler
-		pSampler = CreateTextureSampler(MinFilter, MaxFilter, AddressMode);
-	}
-
-	void VK_Texture::Read(const void* pPixels, int w, int h)
-	{
-		// # Step 1: create the image object and populate it with pixels
-		VkFormat Format = VK_FORMAT_R8G8B8A8_UNORM; // Hard coded for now.
-		CreateTextureImageFromData(pPixels, Format, false); // Hard coded for now.
-
-		// # Step 2: create image view
-		VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT; // Hard coded for now
-		pView = CreateImageView(pImage, Format, AspectFlags, false);
-
-		VkFilter MinFilter = VK_FILTER_LINEAR;
-		VkFilter MaxFilter = VK_FILTER_LINEAR;
-		VkSamplerAddressMode AddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-		// # Step 3: create the texture sampler
-		pSampler = CreateTextureSampler(MinFilter, MaxFilter, AddressMode);
+			// # Step 4: create the texture sampler
+			pSamplers[i] = CreateTextureSampler(MinFilter, MaxFilter, AddressMode);
+		}
 	}
 
 	void VK_Texture::Destroy()
 	{
 		const VkDevice& pDevice = VK_Backend::Get()->GetDevice().GetDevice();
-
-		vkFreeMemory(pDevice, pMemory, NULL);
-		vkDestroyImageView(pDevice, pView, NULL);
-		vkDestroySampler(pDevice, pSampler, NULL);
-		vkDestroyImage(pDevice, pImage, NULL);
+		
+		for (uint32_t i = 0; i < pImages.size(); i++)
+		{
+			vkFreeMemory(pDevice, pMemories[i], NULL);
+			vkDestroyImageView(pDevice, pViews[i], NULL);
+			vkDestroySampler(pDevice, pSamplers[i], NULL);
+			vkDestroyImage(pDevice, pImages[i], NULL);
+		}
 	}
 
-	void VK_Texture::CreateTextureImageFromData(const void* pPixels, VkFormat pFormat, bool IsCubemap)
+	void VK_Texture::CreateVKTexture(const VkImage* pImage, const VkImageView* pImageView, uint32_t Count, VkFormat pFormat, RHI::GPU_TextureState pState, RHI::GPU_TextureType pType)
 	{
-		VkImageUsageFlagBits Usage = (VkImageUsageFlagBits)(VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		for (uint32_t i = 0; i < Count; i++)
+		{
+			pImages.push_back(pImage[i]);
+			pViews.push_back(pImageView[i]);
+		}
+
+		pTexFormat = pFormat;
+		this->pState = pState;
+		this->pType = pType;
+	}
+
+	void VK_Texture::CreateTextureImageFromData(const void* pPixels, VkImage& pImage, VkDeviceMemory& pMemory, VkFormat pFormat, bool IsCubemap)
+	{
+		VkImageUsageFlagBits Usage;
+
+		if (pState == RHI::GPU_TEXTURE_STATE_STATIC)
+		{
+			Usage = (VkImageUsageFlagBits)(VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		}
+		else if (pState == RHI::GPU_TEXTURE_STATE_DYNAMIC)
+		{
+			Usage = (VkImageUsageFlagBits)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		}
+
 		VkMemoryPropertyFlagBits PropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-		CreateImage(pFormat, Usage, PropertyFlags, IsCubemap);
+		CreateImage(pFormat, pImage, pMemory, Usage, PropertyFlags, IsCubemap);
 
-		UpdateTextureImage(pFormat, 1, pPixels, IsCubemap);
+		if (pState == RHI::GPU_TEXTURE_STATE_STATIC)
+		{
+			UpdateTextureImage(pFormat, pImage, 1, pPixels, IsCubemap);
+		}
 	}
 
-	void VK_Texture::CreateImage(VkFormat pFormat, VkImageUsageFlags UsageFlags, VkMemoryPropertyFlagBits PropertyFlags, bool IsCubemap)
+	void VK_Texture::CreateImage(VkFormat pFormat, VkImage& pImage, VkDeviceMemory& pMemory, VkImageUsageFlags UsageFlags, VkMemoryPropertyFlagBits PropertyFlags, bool IsCubemap)
 	{
 		const VkDevice& pDevice = VK_Backend::Get()->GetDevice().GetDevice();
 
@@ -127,7 +146,7 @@ namespace GPU
 		VK_CHECK("vkBindImageMemory", res);
 	}
 
-	void VK_Texture::UpdateTextureImage(VkFormat pFormat, int LayerCount, const void* pPixels, bool IsCubemap)
+	void VK_Texture::UpdateTextureImage(VkFormat pFormat, VkImage pImage, int LayerCount, const void* pPixels, bool IsCubemap)
 	{
 		const VkDevice& pDevice = VK_Backend::Get()->GetDevice().GetDevice();
 
@@ -149,17 +168,17 @@ namespace GPU
 		memcpy(pMem, pPixels, ImageSize);
 		vkUnmapMemory(pDevice, StagingTex.pMemory);
 
-		TransitionImageLayout(pFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, LayerCount);
+		TransitionImageLayout(pFormat, pImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, LayerCount);
 
 		CopyBufferToImage(pImage, StagingTex.pBuffer, ImageWidth, ImageHeight, LayerSize, LayerCount);
 
-		TransitionImageLayout(pFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, LayerCount);
+		TransitionImageLayout(pFormat, pImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, LayerCount);
 
 		vkFreeMemory(pDevice, StagingTex.pMemory, NULL);
 		vkDestroyBuffer(pDevice, StagingTex.pBuffer, NULL);
 	}
 
-	void VK_Texture::TransitionImageLayout(VkFormat pFormat, VkImageLayout OldLayout, VkImageLayout NewLayout, int LayerCount)
+	void VK_Texture::TransitionImageLayout(VkFormat pFormat, VkImage pImage, VkImageLayout OldLayout, VkImageLayout NewLayout, int LayerCount)
 	{
 		const VkCommandBuffer& CmdBuf = VK_Backend::Get()->GetCopyCmdBuf();
 
