@@ -4,6 +4,8 @@
 #include <iostream>
 #include <vector>
 
+#include "GPU_Texture.h"
+
 namespace RHI
 {
 
@@ -17,24 +19,29 @@ namespace RHI
 			float depth;
 			uint32_t stencil;
 		} pDepth;
+
 	} GPU_Clear;
 
-    typedef enum GPU_Format
+	typedef struct GPU_RenderArea
 	{
-		GPU_FORMAT_UNDEFINE = 0,
-		GPU_FORMAT_COLOR_RGBA8 = 1,
-		GPU_FORMAT_COLOR_BGRA8 = 2,
-		GPU_FORMAT_D32_FLOAT = 3,
-	} GPU_Format;
+		struct {
+			uint32_t x, y;
+		} pOffset;
+
+		struct {
+			uint32_t width, height;
+		} pExtent;
+
+	} GPU_RenderArea;
 
 	typedef struct GPU_RenderPassInfo
 	{
 		bool pEnableColor;
 		bool pEnableDepth;
-		std::vector<GPU_Format> pColorFormats;
-		GPU_Format pDepthFormat;
-		uint32_t pWidth;
-		uint32_t pHeight;
+		uint32_t pColorTexCount;
+		const GPU_Texture* pColorTextures;
+		const GPU_Texture* pDepthTexture;
+		GPU_RenderArea pRenderArea;
 	} GPU_RenderPassInfo;
 
 	class GPU_RenderPass
@@ -49,10 +56,10 @@ namespace RHI
 		virtual void End() = 0;
 
 	private:
-		virtual void Create(const GPU_RenderPassInfo pInfo) = 0;
+		virtual void Create(const GPU_RenderPassInfo& pInfo) = 0;
 	};
 
-	GPU_RenderPass* CreateRenderPass(GPU_RenderPassInfo pInfo);
+	GPU_RenderPass* CreateRenderPass(const GPU_RenderPassInfo& pInfo);
 
 }
 

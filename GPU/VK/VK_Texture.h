@@ -15,32 +15,43 @@ namespace GPU
 	{
 	public:
 		VK_Texture() {}
-		VK_Texture(const char* pFilename) { Create(pFilename); }
-		VK_Texture(const void* pPixels, int w, int h) { Read(pPixels, w, h); }
 		~VK_Texture() {}
 
-		virtual void Create(const char* pFilename) override;
-		virtual void Read(const void* pPixels, int w, int h) override;
+		virtual void BindData(RHI::GPU_TextureType pTexType, const void* pPixels, unsigned int pWidth, unsigned int pHeight, RHI::GPU_Format pFormat, RHI::GPU_TextureState pState) override;
 		virtual void Destroy() override;
 
-		inline const VkImage& GetImage() const { return pImage; }
-		inline const VkSampler& GetSampler() const { return pSampler; }
-		inline const VkImageView& GetView() const { return pView; }
+		inline const VkImage& GetImage(uint32_t pIndex) const { return pImages[pIndex]; }
+		inline const VkSampler& GetSampler(uint32_t pIndex) const { return pSamplers[pIndex]; }
+		inline const VkImageView& GetView(uint32_t pIndex) const { return pViews[pIndex]; }
 
+		inline VkFormat GetFormat() const { return pTexFormat; }
+		inline const RHI::GPU_Size GetImageSize() const { return RHI::GPU_Size{ .pWidth = ImageWidth, .pHeight = ImageHeight }; }
+
+		inline const RHI::GPU_TextureState GetState() const { return pState; }
+
+		void CreateVKTexture(
+			const VkImage* pImage, const VkImageView* pImageView, uint32_t Count,
+			VkFormat pFormat, RHI::GPU_TextureState pState, RHI::GPU_TextureType pType
+		);
 	private:
-		VkImage pImage		   = VK_NULL_HANDLE;
-		VkDeviceMemory pMemory = VK_NULL_HANDLE;
-		VkImageView pView	   = VK_NULL_HANDLE;
-		VkSampler pSampler     = VK_NULL_HANDLE;
+		std::vector<VkImage> pImages;
+		std::vector<VkDeviceMemory> pMemories;
+		std::vector<VkImageView> pViews;
+		std::vector<VkSampler> pSamplers;
+
+		RHI::GPU_TextureState pState;
+		RHI::GPU_TextureType pType;
+
+		VkFormat pTexFormat = VK_FORMAT_B8G8R8A8_UNORM;
 
 		uint32_t ImageWidth  = 0;
 		uint32_t ImageHeight = 0;
 		uint32_t ImageChannels = 0;
 
-		void CreateTextureImageFromData(const void* pPixels, VkFormat pFormat, bool IsCubemap);
-		void CreateImage(VkFormat pFormat, VkImageUsageFlags UsageFlags, VkMemoryPropertyFlagBits PropertyFlags, bool IsCubemap);
-		void UpdateTextureImage(VkFormat pFormat, int LayerCount, const void* pPixels, bool IsCubemap);
-		void TransitionImageLayout(VkFormat pFormat, VkImageLayout OldLayout, VkImageLayout NewLayout, int LayerCount);
+		void CreateTextureImageFromData(const void* pPixels, VkImage& pImage, VkDeviceMemory& pMemory, VkFormat pFormat, bool IsCubemap);
+		void CreateImage(VkFormat pFormat, VkImage& pImage, VkDeviceMemory& pMemory, VkImageUsageFlags UsageFlags, VkMemoryPropertyFlagBits PropertyFlags, bool IsCubemap);
+		void UpdateTextureImage(VkFormat pFormat, VkImage pImage, int LayerCount, const void* pPixels, bool IsCubemap);
+		void TransitionImageLayout(VkFormat pFormat, VkImage pImage, VkImageLayout OldLayout, VkImageLayout NewLayout, int LayerCount);
 	};
 
 }
