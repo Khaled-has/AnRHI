@@ -25,7 +25,7 @@ namespace RHI
 	typedef struct GPU_RenderArea
 	{
 		struct {
-			uint32_t x, y;
+			int32_t x, y;
 		} pOffset;
 
 		struct {

@@ -41,7 +41,7 @@ int main(int argc, char argv[])
 		glm::mat4 model = glm::mat4(1);
 	} pUniform;
 
-	pUniform.proj = glm::ortho(-1.0, 1.0, 1.0, -1.0);
+	pUniform.proj = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f);
 
 	RHI::GPU_Buffer* pUniformBuffer = RHI::CreateBuffer(
 		&pUniform, 
@@ -49,16 +49,34 @@ int main(int argc, char argv[])
 		RHI::GPU_BUFFER_TYPE_DYNAMIC // This time we use dynamic for reChange the buffer in the run time
 	);
 
+	// # Create the bindings
+	RHI::GPU_Binding pBindings[] = {
+		{
+			.pBinding = 0,
+			.pBindType = RHI::GPU_BINDING_TYPE_STATIC_BUFFER,
+			.pStage = RHI::GPU_SHADER_STAGE_VERTEX_BIT,
+			.pBuffer = pVertexBuffer
+		},
+		{
+			.pBinding = 1,
+			.pBindType = RHI::GPU_BINDING_TYPE_DYNAMIC_BUFFER,
+			.pStage = RHI::GPU_SHADER_STAGE_VERTEX_BIT,
+			.pBuffer = pUniformBuffer
+		}
+	};
+	// # Create the draw info
+	RHI::GPU_DrawInfo pDrawInfo = {
+		.pDrawType = RHI::GPU_DRAW_TYPE_ARRAY,
+		.pBindCount = 2,
+		.pBindings = &pBindings[0],
+		.pRenderArea = {
+			.pOffset{.x = 0, .y = 0 },
+			.pExtent{.width = 1440, .height = 720 }
+		}
+	};
+
 	// # Step 2: create the draw command
-	RHI::GPU_Draw* pDrawCmd = RHI::CreateDraw();
-
-	// # Bind the vertex buffer with 0 binding
-	pDrawCmd->SetBuffer(pVertexBuffer, RHI::GPU_BUFFER_TYPE_STATIC, 0);
-	// # Bind the uniform buffer with 1 binding
-	pDrawCmd->SetBuffer(pUniformBuffer, RHI::GPU_BUFFER_TYPE_DYNAMIC, 1);
-
-	// # When you finsh init the bindings
-	pDrawCmd->InitBindings();
+	RHI::GPU_DrawCmd* pDrawCmd = RHI::CreateDraw(pDrawInfo);
 
 	// # Step 3: create the shader 
 	// # ( Take Shor you reChange the shader with current API because AnRHI lit you all the designee in the shaders )

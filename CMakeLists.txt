@@ -42,7 +42,6 @@ target_include_directories(AnRHI_Core PUBLIC
 	"${VULKAN_PATH}/Include"
 	"${EXTERN_DIR}/shaderc"
 	"${EXTERN_DIR}/spdlog/include"
-	"${EXTERN_DIR}/stb"
 
 	# Window libraries
 	"${EXTERN_DIR}/SDL3/include"

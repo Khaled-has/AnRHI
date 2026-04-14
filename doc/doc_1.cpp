@@ -31,12 +31,27 @@ int main(int argc, char argv[])
 		pVertices.data(), sizeof(float) * pVertices.size(), RHI::GPU_BUFFER_TYPE_STATIC
 	);
 
-	// # Step 2: create the draw command
-	RHI::GPU_Draw* pDrawCmd = RHI::CreateDraw();
-	pDrawCmd->SetBuffer(pVertexBuffer, RHI::GPU_BUFFER_TYPE_STATIC, 0);
+	
+	// # Create the bindings
+	RHI::GPU_Binding pBinding = {
+		.pBinding = 0,
+		.pBindType = RHI::GPU_BINDING_TYPE_STATIC_BUFFER,
+		.pStage = RHI::GPU_SHADER_STAGE_VERTEX_BIT,
+		.pBuffer = pVertexBuffer
+	};
+	// # Create the draw info
+	RHI::GPU_DrawInfo pDrawInfo = {
+		.pDrawType = RHI::GPU_DRAW_TYPE_ARRAY,
+		.pBindCount = 1,
+		.pBindings = &pBinding,
+		.pRenderArea = {
+			.pOffset{.x = 0, .y = 0 },
+			.pExtent{.width = 1440, .height = 720 }
+		}
+	};
 
-	// # When you finish init the bindings
-	pDrawCmd->InitBindings();
+	// # Step 2: create the draw command
+	RHI::GPU_DrawCmd* pDrawCmd = RHI::CreateDraw(pDrawInfo);
 
 	// # Step 3: create the shader 
 	// # ( Take Shor you reChange the shader with current API because AnRHI lit you all the designee in the shaders )

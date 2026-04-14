@@ -6,12 +6,43 @@
 namespace GPU
 {
 
-	void VK_GraphicsPipeline::Create(const std::vector<VK_PipelineBinding>* pBindingsInfo)
+	VkDescriptorType GetVKDescriptorType(RHI::GPU_BindingType pType)
 	{
-		CreateDescriptorPool(pBindingsInfo);
-		CreateDescriptorLayout(pBindingsInfo);
+		switch (pType)
+		{
+		case RHI::GPU_BINDING_TYPE_STATIC_BUFFER:
+			return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+
+		case RHI::GPU_BINDING_TYPE_DYNAMIC_BUFFER:
+			return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+		case RHI::GPU_BINDING_TYPE_TEXTURE:
+			return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		}
+
+		exit(1);
+	}
+
+	VkShaderStageFlags GetVKShaderStageFlag(RHI::GPU_ShaderStage pStage)
+	{
+		switch (pStage)
+		{
+		case RHI::GPU_SHADER_STAGE_VERTEX_BIT:
+			return VK_SHADER_STAGE_VERTEX_BIT;
+
+		case RHI::GPU_SHADER_STAGE_FRAGMENT_BIT:
+			return VK_SHADER_STAGE_FRAGMENT_BIT;
+		}
+	}
+
+	void VK_GraphicsPipeline::Create(const RHI::GPU_DrawInfo& pInfo)
+	{
+		pRenderArea = pInfo.pRenderArea;
+
+		CreateDescriptorPool(pInfo.pBindings, pInfo.pBindCount);
+		CreateDescriptorLayout(pInfo.pBindings, pInfo.pBindCount);
 		AllocateDescriptorSets();
-		UpdateDescriptorSets(pBindingsInfo);
+		UpdateDescriptorSets(pInfo.pBindings, pInfo.pBindCount);
 	}
 
 	void VK_GraphicsPipeline::Destroy()
@@ -42,16 +73,16 @@ namespace GPU
 		);
 	}
 
-	void VK_GraphicsPipeline::CreateDescriptorPool(const std::vector<VK_PipelineBinding>* pBindingsInfo)
+	void VK_GraphicsPipeline::CreateDescriptorPool(const RHI::GPU_Binding* pBindings, uint32_t pCount)
 	{
 		const uint32_t NumImages = VK_Backend::Get()->GetSwapChain().GetImageCount();
 		std::vector<VkDescriptorPoolSize> PoolSizes;
 
-		for (uint32_t i = 0; i < pBindingsInfo->size(); i++)
+		for (uint32_t i = 0; i < pCount; i++)
 		{
 			PoolSizes.push_back(
 				VkDescriptorPoolSize{
-					.type = pBindingsInfo->at(i).pDescType,
+					.type = GetVKDescriptorType(pBindings[i].pBindType),
 					.descriptorCount = NumImages
 				}
 			);
@@ -73,18 +104,18 @@ namespace GPU
 		
 	}
 
-	void VK_GraphicsPipeline::CreateDescriptorLayout(const std::vector<VK_PipelineBinding>* pBindingsInfo)
+	void VK_GraphicsPipeline::CreateDescriptorLayout(const RHI::GPU_Binding* pBindings, uint32_t pCount)
 	{
 		std::vector<VkDescriptorSetLayoutBinding> Bindings;
 
-		for (uint32_t i = 0; i < pBindingsInfo->size(); i++)
+		for (uint32_t i = 0; i < pCount; i++)
 		{
 			Bindings.push_back(
 				VkDescriptorSetLayoutBinding{
-					.binding = pBindingsInfo->at(i).pBinding,
-					.descriptorType = pBindingsInfo->at(i).pDescType,
+					.binding = pBindings[i].pBinding,
+					.descriptorType = GetVKDescriptorType(pBindings[i].pBindType),
 					.descriptorCount = 1,
-					.stageFlags = pBindingsInfo->at(i).pStageFlag
+					.stageFlags = GetVKShaderStageFlag(pBindings[i].pStage)
 				}
 			);
 		}
@@ -125,20 +156,20 @@ namespace GPU
 		);
 	}
 
-	void VK_GraphicsPipeline::UpdateDescriptorSets(const std::vector<VK_PipelineBinding>* pBindingsInfo)
+	void VK_GraphicsPipeline::UpdateDescriptorSets(const RHI::GPU_Binding* pBindings, uint32_t pCount)
 	{
 
 		for (uint32_t i = 0; i < VK_Backend::Get()->GetSwapChain().GetImageCount(); i++)
 		{
 			std::vector<VkWriteDescriptorSet> WriteDescriptorSets{};
 
-			for (uint32_t j = 0; j < pBindingsInfo->size(); j++)
+			for (uint32_t j = 0; j < pCount; j++)
 			{
 				// # Buffer
-				if (pBindingsInfo->at(j).pBindingType == VK_BINDING_BUFFER_INFO)
+				if (pBindings[j].pBindType == RHI::GPU_BINDING_TYPE_STATIC_BUFFER)
 				{
 					VkDescriptorBufferInfo BufferInfo = {
-						.buffer = pBindingsInfo->at(j).pBuffer->GetBuffer().pBuffer,
+						.buffer = reinterpret_cast<const VK_Buffer*>(pBindings[j].pBuffer)->GetBuffer().pBuffer,
 						.offset = 0,
 						.range = VK_WHOLE_SIZE
 					};
@@ -147,21 +178,22 @@ namespace GPU
 						VkWriteDescriptorSet{
 							.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 							.dstSet = pDescriptorSets[i],
-							.dstBinding = pBindingsInfo->at(j).pBinding,
+							.dstBinding = pBindings[j].pBinding,
 							.dstArrayElement = 0,
 							.descriptorCount = 1,
-							.descriptorType = pBindingsInfo->at(j).pDescType,
+							.descriptorType = GetVKDescriptorType(pBindings[j].pBindType),
 							.pBufferInfo = &BufferInfo
 					});
 				}
 				// # Image
-				else if (pBindingsInfo->at(j).pBindingType == VK_BINDING_IMAGE_INFO)
+				else if (pBindings[j].pBindType == RHI::GPU_BINDING_TYPE_TEXTURE)
 				{
-					uint32_t pImageIndex = pBindingsInfo->at(j).pTexture->GetState() == RHI::GPU_TEXTURE_STATE_DYNAMIC ? i : 0;
+					const VK_Texture* pTex = reinterpret_cast<const VK_Texture*>(pBindings[j].pTexture);
 
+					uint32_t pImageIndex = pTex->GetState() == RHI::GPU_TEXTURE_STATE_DYNAMIC ? i : 0;
 					VkDescriptorImageInfo ImageInfo = {
-						.sampler = pBindingsInfo->at(j).pTexture->GetSampler(pImageIndex),
-						.imageView = pBindingsInfo->at(j).pTexture->GetView(pImageIndex),
+						.sampler = pTex->GetSampler(pImageIndex),
+						.imageView = pTex->GetView(pImageIndex),
 						.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 					};
 
@@ -169,18 +201,18 @@ namespace GPU
 						VkWriteDescriptorSet{
 							.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 							.dstSet = pDescriptorSets[i],
-							.dstBinding = pBindingsInfo->at(j).pBinding,
+							.dstBinding = pBindings[j].pBinding,
 							.dstArrayElement = 0,
 							.descriptorCount = 1,
-							.descriptorType = pBindingsInfo->at(j).pDescType,
+							.descriptorType = GetVKDescriptorType(pBindings[j].pBindType),
 							.pImageInfo = &ImageInfo
-					});
+					});	
 				}
 				// # Uniform buffer
-				else if (pBindingsInfo->at(j).pBindingType == VK_BINDING_UNIFORM_INFO)
+				else if (pBindings[j].pBindType == RHI::GPU_BINDING_TYPE_DYNAMIC_BUFFER)
 				{
 					VkDescriptorBufferInfo UniformInfo = {
-						.buffer = pBindingsInfo->at(j).pUniformBuffers[i].pBuffer,
+						.buffer = reinterpret_cast<const VK_Buffer*>(pBindings[j].pBuffer)->GetBuffers()[i].pBuffer,
 						.offset = 0,
 						.range = VK_WHOLE_SIZE
 					};
@@ -189,10 +221,10 @@ namespace GPU
 						VkWriteDescriptorSet{
 							.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 							.dstSet = pDescriptorSets[i],
-							.dstBinding = pBindingsInfo->at(j).pBinding,
+							.dstBinding = pBindings[j].pBinding,
 							.dstArrayElement = 0,
 							.descriptorCount = 1,
-							.descriptorType = pBindingsInfo->at(j).pDescType,
+							.descriptorType = GetVKDescriptorType(pBindings[j].pBindType),
 							.pBufferInfo = &UniformInfo
 						}
 					);
@@ -241,20 +273,20 @@ namespace GPU
 		};
 
 		VkViewport VP = {
-			.x = 0.0f,
-			.y = 0.0f,
-			.width = (float)pCurrenDrawInfo.pRenderArea.pExtent.width,
-			.height = (float)pCurrenDrawInfo.pRenderArea.pExtent.height,
+			.x = (float)pRenderArea.pOffset.x,
+			.y = (float)pRenderArea.pOffset.y,
+			.width = (float)pRenderArea.pExtent.width,
+			.height = (float)pRenderArea.pExtent.height,
 			.minDepth = 0.0f,
 			.maxDepth = 1.0f
 		};
 
 		VkRect2D Scissor = {
 			.offset = {
-				.x = 0, .y = 0
+				.x = pRenderArea.pOffset.x, .y = pRenderArea.pOffset.y
 			},
 			.extent = {
-				.width = pCurrenDrawInfo.pRenderArea.pExtent.width, .height = pCurrenDrawInfo.pRenderArea.pExtent.height
+				.width = pRenderArea.pExtent.width, .height = pRenderArea.pExtent.height
 			}
 		};
 

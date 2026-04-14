@@ -108,32 +108,35 @@ namespace GPU {
 			-1.0,  1.0, 0.0, 1.0
 		};
 
-		pScreenImageBuffer.Create(
-			pVertices.data(), 
-			size_t(pVertices.size() * sizeof(float)), 
-			RHI::GPU_BUFFER_TYPE_STATIC
-		);
+		pScreenImageBuffer.Create(pVertices.data(), sizeof(float) * pVertices.size(), RHI::GPU_BUFFER_TYPE_STATIC);
 
-		std::vector<VK_PipelineBinding> pBindings;
-		pBindings.push_back(
-			VK_PipelineBinding{
+		auto pWinSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
+
+		// # Bindings of screen image draw command
+		RHI::GPU_Binding pBindings[] = {
+			{
 				.pBinding = 0,
-				.pDescType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-				.pStageFlag = VK_SHADER_STAGE_VERTEX_BIT,
-				.pBindingType = VK_BINDING_BUFFER_INFO,
+				.pBindType = RHI::GPU_BINDING_TYPE_STATIC_BUFFER,
+				.pStage = RHI::GPU_SHADER_STAGE_VERTEX_BIT,
 				.pBuffer = &pScreenImageBuffer
-			}
-		);
-
-		pBindings.push_back(
-			VK_PipelineBinding{
+			},
+			{
 				.pBinding = 1,
-				.pDescType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				.pStageFlag = VK_SHADER_STAGE_FRAGMENT_BIT,
-				.pBindingType = VK_BINDING_IMAGE_INFO,
+				.pBindType = RHI::GPU_BINDING_TYPE_TEXTURE,
+				.pStage = RHI::GPU_SHADER_STAGE_FRAGMENT_BIT,
 				.pTexture = pFinalTexture
 			}
-		);
+		};
+		// # Draw info
+		RHI::GPU_DrawInfo pDrawInfo = {
+			.pBindCount = 2,
+			.pBindings = &pBindings[0],
+			.pRenderArea = {
+				.pOffset = {.x = 0, .y = 0},
+				.pExtent = {.width = pWinSize.pWidth, .height = pWinSize.pHeight}
+			}
+		};
+		pScreenImagePipeline.Create(pDrawInfo);
 
 		const std::vector<uint32_t> VertexShaderBin = {
 			119734787, 65536, 851979, 54, 0, 131089, 1, 393227, 1, 1280527431, 1685353262, 808793134,
@@ -175,9 +178,7 @@ namespace GPU {
 
 		pScreenImageShader.InitSPIR_V(VertexShaderBin, FragmentShaderBin);
 
-		pScreenImagePipeline.Create(&pBindings);
 		const std::vector<VkFormat> pColorFormats = { pSwapChain.GetSurfaceFormat().format };
-		auto pWinSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
 
 		RHI::GPU_Texture* pTex = new VK_Texture();
 		reinterpret_cast<VK_Texture*>(pTex)->CreateVKTexture(

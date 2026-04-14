@@ -1,7 +1,7 @@
 #ifndef VK_DRAW_H
 #define VK_DRAW_H
 
-#include "GPU_Draw.h"
+#include "GPU_DrawCmd.h"
 
 #include "VK_GraphicsPipeline.h"
 #include "VK_Buffer.h"
@@ -11,23 +11,18 @@
 namespace GPU
 {
 
-	class VK_Draw : public RHI::GPU_Draw
+	class VK_DrawCmd : public RHI::GPU_DrawCmd
 	{
 	public:
-		VK_Draw() {}
-		~VK_Draw() {}
+		VK_DrawCmd(const RHI::GPU_DrawInfo& pDrawInfo);
+		~VK_DrawCmd() {}
 
-		virtual void SetBuffer(const RHI::GPU_Buffer* pBuffer, RHI::GPU_BufferType pBufType, uint32_t pBindIndex) override;
-		virtual void SetTexture(const RHI::GPU_Texture* pTexture, uint32_t pBindIndex) override;
-
-		virtual void InitBindings() override;
 		virtual void Destroy() override;
 
 		virtual void Draw(uint32_t pFirstVertex, uint32_t pVertexCount) override;
 
 	private:
 		VK_GraphicsPipeline pGraphPipeline;
-		std::vector<VK_PipelineBinding> pBindings;
 
 		VK_Shader pShader;
 
