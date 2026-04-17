@@ -20,13 +20,13 @@ namespace GPU
 		void Create();
 		void Destroy();
 
-		void AcquireNextImage();
+		VkResult AcquireNextImage();
 		inline uint32_t CurrentFrame() { return pFrameIndex; }
 
 		void SubmitSync(const VkCommandBuffer& CmdBuf) const;
 		void SubmitAsync(const VkCommandBuffer* CmdBuf, uint32_t Count = 1);
 
-		void Present(uint32_t ImageIndex);
+		VkResult Present(uint32_t ImageIndex);
 		void WaitIdle() const;
 
 		inline uint32_t GetAcquiredImageIndex() const { return pAcquiredImageIndex; }

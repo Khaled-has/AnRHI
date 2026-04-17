@@ -60,7 +60,7 @@ namespace GPU
 		}
 	}
 
-	void VK_Queue::AcquireNextImage()
+	VkResult VK_Queue::AcquireNextImage()
 	{
 		const VkDevice& pDevice = VK_Backend::Get()->GetDevice().GetDevice();
 		const VkSwapchainKHR& pSwapChain = VK_Backend::Get()->GetSwapChain().GetSwapchain();
@@ -72,7 +72,6 @@ namespace GPU
 			UINT64_MAX, pImageAvailableSems[pFrameIndex],
 			VK_NULL_HANDLE, &pAcquiredImageIndex
 		);
-		VK_CHECK("vkAcquireNextImageKHR", res);
 
 		if ((pImagesInFlight[pAcquiredImageIndex] != VK_NULL_HANDLE) &&
 			(pImagesInFlight[pAcquiredImageIndex] != pInFlightFences[pFrameIndex]))
@@ -81,6 +80,13 @@ namespace GPU
 		}
 
 		pImagesInFlight[pAcquiredImageIndex] = pInFlightFences[pFrameIndex];
+
+		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR)
+		{
+			return res;
+		}
+		VK_CHECK("vkAcquireNextImageKHR", res);
+		return res;
 	}
 
 	void VK_Queue::SubmitSync(const VkCommandBuffer& CmdBuf) const
@@ -123,7 +129,7 @@ namespace GPU
 		VK_CHECK("vkQueueSubmit", res);
 	}
 
-	void VK_Queue::Present(uint32_t ImageIndex)
+	VkResult VK_Queue::Present(uint32_t ImageIndex)
 	{
 		const VkSwapchainKHR& pSwapchain = VK_Backend::Get()->GetSwapChain().GetSwapchain();
 
@@ -139,11 +145,18 @@ namespace GPU
 		};
 
 		VkResult res = vkQueuePresentKHR(pQueue, &PresentInfo);
-		VK_CHECK("vkQueuePresentKHR", res);
-
 		pFrameIndex = (pFrameIndex + 1) % pNumImages;
 
 		WaitIdle();
+
+		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR)
+		{
+			return res;
+		}
+
+		VK_CHECK("vkQueuePresentKHR", res);
+
+		return res;
 	}
 
 	void VK_Queue::WaitIdle() const 

@@ -24,7 +24,7 @@ namespace GPU
 		VK_SwapChain() {}
 		~VK_SwapChain() {}
 
-		void Create(bool pEnableDepthTest);
+		void Create();
 		void Destroy();
 
 		inline const VkSwapchainKHR& GetSwapchain() const { return pSwapChain; }
@@ -63,6 +63,7 @@ namespace GPU
 		void CreateFramebuffers();
 
 		void CreateDepthResources();
+
 	};
 
 }

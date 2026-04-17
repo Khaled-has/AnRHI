@@ -1,21 +1,23 @@
 #include <iostream>
-#include <vector>
-
-#include <SDL3/SDL.h>
 
 #include "GPU.h"
 #include "Backends/GPU_SDL3.h"
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <stb_image.h>
 
+/* -- You should to render a simple rectangle with texture in this documentation -- */
 
-/* -- You should to render a simple triangle rotating on the screen with uniform buffer with this documentation -- */
+void* LoadTextureFromFile(const char* pFilename, int* w, int* h, int* channels)
+{
+	stbi_uc* pPixels = stbi_load(pFilename, w, h, channels, NULL);
+
+	return pPixels;
+}
 
 int main(int argc, char* argv[])
 {
 	SDL_Window* pWin = SDL_CreateWindow(
-		"AnRHI-doc_2",
+		"AnRHI-doc_3",
 		1360, 720,
 		SDL_WINDOW_VULKAN
 	);
@@ -30,38 +32,54 @@ int main(int argc, char* argv[])
 	pBackend->Backend_Init();
 
 	// # Step 1: create the vertex buffer
-	const std::vector<float> pVertices = { -0.5f, 0.5f, 0.5f, 0.5f, 0.0f, -0.5f };
+	const std::vector<float> pVertices = 
+	{  // Position        UV
+		-0.8f, -0.8f, 0.0f, 0.0f,
+		 0.8f, -0.8f, 1.0f, 0.0f,
+		 0.8f,  0.8f, 1.0f, 1.0f,
+
+		 0.8f,  0.8f, 1.0f, 1.0f,
+		-0.8f, -0.8f, 0.0f, 0.0f,
+		-0.8f,  0.8f, 0.0f, 1.0f
+	};
 	RHI::GPU_Buffer* pVertexBuffer = RHI::CreateBuffer(
 		pVertices.data(), sizeof(float) * pVertices.size(), RHI::GPU_BUFFER_TYPE_STATIC
 	);
 
-	// Uniform buffer
-	struct {
-		glm::mat4 proj = glm::mat4(1);
-		glm::mat4 model = glm::mat4(1);
-	} pUniform;
+	// # Step 2: create the texture
+	int w, h, channels;
+	void* pPixels = LoadTextureFromFile(
+		(std::string(RES_PATH) + "HollowKnight.png").c_str(),
+		&w, &h, &channels
+		);
 
-	pUniform.proj = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f);
+	RHI::GPU_TextureInfo pTexInfo = {
+		.pType = RHI::GPU_TEXTURE_TYPE_2D,
+		.pPixels = pPixels,
+		.pSize = {.pWidth = (uint32_t)w, .pHeight = (uint32_t)h },
+		.pFormat = RHI::GPU_FORMAT_COLOR_RGBA8,
+		.pAspect = RHI::GPU_ASPECT_COLOR_BIT,
+		.pState = RHI::GPU_TEXTURE_STATE_STATIC
+	};
+	RHI::GPU_Texture* pTexture = RHI::CreateTexture(pTexInfo);
 
-	RHI::GPU_Buffer* pUniformBuffer = RHI::CreateBuffer(
-		&pUniform, 
-		sizeof(pUniform), 
-		RHI::GPU_BUFFER_TYPE_DYNAMIC // This time we use dynamic for reChange the buffer in the run time
-	);
+	stbi_image_free(pPixels);
 
 	// # Create the bindings
 	RHI::GPU_Binding pBindings[] = {
+		// # 1 : Vertex buffer binding
 		{
 			.pBinding = 0,
 			.pBindType = RHI::GPU_BINDING_TYPE_STATIC_BUFFER,
 			.pStage = RHI::GPU_SHADER_STAGE_VERTEX_BIT,
 			.pBuffer = pVertexBuffer
 		},
+		// # 2 : Texture binding
 		{
 			.pBinding = 1,
-			.pBindType = RHI::GPU_BINDING_TYPE_DYNAMIC_BUFFER,
-			.pStage = RHI::GPU_SHADER_STAGE_VERTEX_BIT,
-			.pBuffer = pUniformBuffer
+			.pBindType = RHI::GPU_BINDING_TYPE_TEXTURE,
+			.pStage = RHI::GPU_SHADER_STAGE_FRAGMENT_BIT,
+			.pTexture = pTexture
 		}
 	};
 	// # Create the draw info
@@ -82,10 +100,11 @@ int main(int argc, char* argv[])
 	// # ( Take Shor you reChange the shader with current API because AnRHI lit you all the designee in the shaders )
 	RHI::GPU_Shader* pShader = RHI::CreateShader();
 	pShader->InitFromFile( // # This function shown if you implement shaderc if you not you will don't show it
-		(std::string(RES_PATH) + "GLSL/" + "doc_2.vert").c_str(),
-		(std::string(RES_PATH) + "GLSL/" + "doc_2.frag").c_str()
+		(std::string(RES_PATH) + "GLSL/" + "doc_3.vert").c_str(),
+		(std::string(RES_PATH) + "GLSL/" + "doc_3.frag").c_str()
 	);
-	// # You can use this functions if you want more controlee
+
+	// # You can use this functions if you want more controle
 	// -> pShader->InitFromSPIRvFile("file.vert.spv", "file.frag.spv");
 	// -> pShader->InitSPIR_V(SPITV_Code_vert, SPITV_Code_frag);
 
@@ -93,7 +112,7 @@ int main(int argc, char* argv[])
 	RHI::GPU_TextureInfo pTexColorInfo = {
 		.pType = RHI::GPU_TEXTURE_TYPE_2D,
 		.pPixels = nullptr,
-		.pSize = RHI::GPU_Size{ .pWidth = 1360, .pHeight = 720 },
+		.pSize = RHI::GPU_Size{.pWidth = 1360, .pHeight = 720 },
 		.pFormat = RHI::GPU_FORMAT_COLOR_BGRA8,
 		.pAspect = RHI::GPU_ASPECT_COLOR_BIT,
 		.pState = RHI::GPU_TEXTURE_STATE_DYNAMIC
@@ -112,8 +131,8 @@ int main(int argc, char* argv[])
 			.pExtent{.width = 1360, .height = 720 }
 		}
 	};
-	RHI::GPU_RenderPass* pRenPassDrawObjs = RHI::CreateRenderPass(pRenPassInfo);
 
+	RHI::GPU_RenderPass* pRenPassDrawObjs = RHI::CreateRenderPass(pRenPassInfo);
 	// # Step 6: record the draw commands on the render pass
 	pBackend->BeginRecord();
 
@@ -126,7 +145,7 @@ int main(int argc, char* argv[])
 	pShader->Active();
 
 	// # Draw command for draw the data you include it on it
-	pDrawCmd->Draw(0, 3);
+	pDrawCmd->Draw(0, 6);
 
 	// # End the render pass
 	pRenPassDrawObjs->End();
@@ -148,10 +167,7 @@ int main(int argc, char* argv[])
 		pBackend->BeginRendering();
 
 		// # Warning: every buffer update should to execute here between the: BeginRendering() |...| EndRendering()
-		// # Transform the model matrix to rotate the object
-		pUniform.model = glm::rotate(pUniform.model, glm::radians(0.5f), glm::vec3(0, 0, 1));
-		// # Update the new uniform data
-		pUniformBuffer->Update(&pUniform, sizeof(pUniform));
+		//pVertexBuffer->Update(newData, size); | For example..
 
 		// # End the rendering
 		pBackend->EndRendering();
@@ -159,7 +175,7 @@ int main(int argc, char* argv[])
 
 	// # Destroy the RHI components
 	pVertexBuffer->Destroy();
-	pUniformBuffer->Destroy();
+	pTexture->Destroy();
 	pColorTextureAttach->Destroy();
 
 	pShader->Destroy();

@@ -171,6 +171,8 @@ namespace GPU {
 		inline uint32_t GetSelectedQueue() const { return pSelectedPhyDevQueueIndex; }
 		inline uint32_t GetSelectedQFamily() const { return pSelectedPhyDevQueueFamilyIndex; }
 
+		VkSurfaceCapabilitiesKHR GetSurfaceCapabilities() const;
+
 		// # Device checks
 		bool IsExtSupported(const char* _Ext, uint32_t pPhyDeviceIndex) const;
 		bool IsExtSupported(const char* _Ext) const;

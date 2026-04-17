@@ -8,13 +8,13 @@
 namespace RHI
 {
 
-	GPU_Texture* CreateTexture()
+	GPU_Texture* CreateTexture(const GPU_TextureInfo& pInfo)
 	{
 		GPU_BACKEND_TYPES BType = GPU_Backend::GetBackendType();
 
 		if (BType == GPU_BACKEND_TYPES::GPU_BACKEND_VULKAN)
 		{
-			return new GPU::VK_Texture();
+			return new GPU::VK_Texture(pInfo);
 		}
 		else if (BType == GPU_BACKEND_TYPES::GPU_BACKEND_DX12)
 		{

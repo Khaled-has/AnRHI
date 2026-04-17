@@ -7,11 +7,11 @@
 namespace GPU
 {
 
-	void VK_Texture::BindData(RHI::GPU_TextureType pTexType, const void* pPixels, unsigned int pWidth, unsigned int pHeight, RHI::GPU_Format pFormat, RHI::GPU_TextureState pState)
+	VK_Texture::VK_Texture(const RHI::GPU_TextureInfo& pInfo)
 	{
-		ImageWidth = pWidth; ImageHeight = pHeight;
-		pTexFormat = TranslateGPUFormatToVulkanFormat(pFormat);
-		this->pState = pState; this->pType = pTexType;
+		pSize = pInfo.pSize;
+		pTexFormat = TranslateGPUFormatToVulkanFormat(pInfo.pFormat);
+		pState = pInfo.pState; pType = pInfo.pType;
 
 		const uint32_t NumImages = VK_Backend::Get()->GetSwapChain().GetImageCount();
 
@@ -33,10 +33,14 @@ namespace GPU
 		for (uint32_t i = 0; i < pImages.size(); i++)
 		{
 			// # Step 1: create the image object and populate it with pixels
-			CreateTextureImageFromData(pPixels, pImages[i], pMemories[i], pTexFormat, false); // Hard coded for now.
+			CreateTextureImageFromData(
+				pInfo.pPixels, pImages[i], pMemories[i], 
+				pTexFormat, pInfo.pAspect == RHI::GPU_ASPECT_COLOR_BIT ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT : VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+				, false
+			); // Hard coded for now.
 
 			// # Step 2: create image view
-			VkImageAspectFlags AspectFlags = VK_IMAGE_ASPECT_COLOR_BIT; // Hard coded for now
+			VkImageAspectFlags AspectFlags = pInfo.pAspect == RHI::GPU_ASPECT_COLOR_BIT ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
 			pViews[i] = CreateImageView(pImages[i], pTexFormat, AspectFlags, false);
 
 			VkFilter MinFilter = VK_FILTER_LINEAR;
@@ -63,6 +67,10 @@ namespace GPU
 
 	void VK_Texture::CreateVKTexture(const VkImage* pImage, const VkImageView* pImageView, uint32_t Count, VkFormat pFormat, RHI::GPU_TextureState pState, RHI::GPU_TextureType pType)
 	{
+		if (pImages.size() > 0)
+		{
+			pImages.clear(); pViews.clear();
+		}
 		for (uint32_t i = 0; i < Count; i++)
 		{
 			pImages.push_back(pImage[i]);
@@ -74,7 +82,7 @@ namespace GPU
 		this->pType = pType;
 	}
 
-	void VK_Texture::CreateTextureImageFromData(const void* pPixels, VkImage& pImage, VkDeviceMemory& pMemory, VkFormat pFormat, bool IsCubemap)
+	void VK_Texture::CreateTextureImageFromData(const void* pPixels, VkImage& pImage, VkDeviceMemory& pMemory, VkFormat pFormat, VkImageUsageFlagBits pAttachmentFlag, bool IsCubemap)
 	{
 		VkImageUsageFlagBits Usage;
 
@@ -84,7 +92,7 @@ namespace GPU
 		}
 		else if (pState == RHI::GPU_TEXTURE_STATE_DYNAMIC)
 		{
-			Usage = (VkImageUsageFlagBits)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+			Usage = (VkImageUsageFlagBits)(pAttachmentFlag | VK_IMAGE_USAGE_SAMPLED_BIT);
 		}
 
 		VkMemoryPropertyFlagBits PropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
@@ -107,7 +115,7 @@ namespace GPU
 			.flags = IsCubemap ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : (VkImageCreateFlags)0,
 			.imageType = VK_IMAGE_TYPE_2D,
 			.format = pFormat,
-			.extent = VkExtent3D{.width = ImageWidth, .height = ImageHeight, .depth = 1},
+			.extent = VkExtent3D{.width = pSize.pWidth, .height = pSize.pHeight, .depth = 1},
 			.mipLevels = 1,
 			.arrayLayers = IsCubemap ? 6u : 1u,
 			.samples = VK_SAMPLE_COUNT_1_BIT,
@@ -152,7 +160,7 @@ namespace GPU
 
 		int BytesPerPixel = GetBytesPerTexFormat(pFormat);
 
-		VkDeviceSize LayerSize = ImageWidth * ImageHeight * BytesPerPixel;
+		VkDeviceSize LayerSize = pSize.pWidth * pSize.pHeight * BytesPerPixel;
 		VkDeviceSize ImageSize = LayerCount * LayerSize;
 
 		VkBufferUsageFlags Usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -170,7 +178,7 @@ namespace GPU
 
 		TransitionImageLayout(pFormat, pImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, LayerCount);
 
-		CopyBufferToImage(pImage, StagingTex.pBuffer, ImageWidth, ImageHeight, LayerSize, LayerCount);
+		CopyBufferToImage(pImage, StagingTex.pBuffer, pSize.pWidth, pSize.pHeight, LayerSize, LayerCount);
 
 		TransitionImageLayout(pFormat, pImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, LayerCount);
 

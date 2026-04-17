@@ -78,9 +78,18 @@ namespace GPU {
 		// Screen image
 		VK_Buffer pScreenImageBuffer;
 		VK_Shader pScreenImageShader;
-		VK_GraphicsPipeline pScreenImagePipeline;
+		VK_GraphicsPipeline* pScreenImagePipeline;
 
+		const VK_Texture* pLastUsedTexture;
+
+		lib_backend::GPU_WinSize pCurrentWindowSize;
+		bool pIsWindowChanged = false;
+		bool pIsWindowHidden = false;
+
+		void InitScreenImage();
 		void CreateScreenImageResources(const VK_Texture* pFinalTexture);
+
+		void RecreateSwapChain();
 	};
 
 	inline VK_Backend* CreateVulkanBackend()

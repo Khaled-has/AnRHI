@@ -32,7 +32,12 @@ namespace GPU
 
 		case RHI::GPU_SHADER_STAGE_FRAGMENT_BIT:
 			return VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		default:
+			return 0;
 		}
+
+		exit(1);
 	}
 
 	void VK_GraphicsPipeline::Create(const RHI::GPU_DrawInfo& pInfo)

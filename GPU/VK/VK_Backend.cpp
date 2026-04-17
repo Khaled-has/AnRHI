@@ -26,7 +26,7 @@ namespace GPU {
 		// 1 # Create device
 		pDevice.Create();
 		// 2 # Create swapchain
-		pSwapChain.Create(false);
+		pSwapChain.Create();
 		// 3 # Create command buffer pool
 		pCmdBufPool.Create();
 		// 4 # Create command buffers
@@ -37,6 +37,11 @@ namespace GPU {
 		pLoadThread.Create();
 		// 6 # Create queue
 		pQueue.Create();
+		
+		// # Initialize screen image recources
+		InitScreenImage();
+
+		pCurrentWindowSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
 	}
 
 	void VK_Backend::Backend_Exit()
@@ -44,7 +49,7 @@ namespace GPU {
 		// # Destroy screen image graphics pipeline
 		pScreenImageBuffer.Destroy();
 		pScreenImageShader.Destroy();
-		pScreenImagePipeline.Destroy();
+		pScreenImagePipeline->Destroy();
 		// # Destroy queue
 		pQueue.Destroy();
 		// # Destroy swapchain
@@ -77,7 +82,40 @@ namespace GPU {
 
 	void VK_Backend::BeginRendering()
 	{
-		pQueue.AcquireNextImage();
+		VkResult res = VK_SUCCESS;
+		if (!pIsWindowHidden)
+		{
+			// # AcquireNextImage
+			res = pQueue.AcquireNextImage();
+		}
+
+		// # Check window's changes
+		auto WinSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
+		if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR)
+		{
+			pIsWindowChanged = true;
+
+			const VkSurfaceCapabilitiesKHR& Caps = pDevice.GetSurfaceCapabilities();
+
+			if (Caps.currentExtent.width <= 0 || Caps.currentExtent.height <= 0)
+				pIsWindowHidden = true;
+		}
+		else if (WinSize != pCurrentWindowSize)
+		{
+			pIsWindowChanged = true;
+
+			const VkSurfaceCapabilitiesKHR Caps = pDevice.GetSurfaceCapabilities();
+
+			if (Caps.currentExtent.width <= 0 || Caps.currentExtent.height <= 0)
+				pIsWindowHidden = true;
+		}
+		else if (pIsWindowHidden)
+		{
+			const VkSurfaceCapabilitiesKHR Caps = pDevice.GetSurfaceCapabilities();
+
+			if (Caps.currentExtent.width > 0 && Caps.currentExtent.height > 0)
+				pIsWindowHidden = false;
+		}
 	}
 
 
@@ -85,9 +123,34 @@ namespace GPU {
 	{
 		uint32_t pImageIndex = pQueue.GetAcquiredImageIndex();
 
-		pQueue.SubmitAsync(&pCmdBufs[pImageIndex]);
+		VkResult res = VK_SUCCESS;
+		if (!pIsWindowHidden)
+		{
+			// # Submit async queue
+			pQueue.SubmitAsync(&pCmdBufs[pImageIndex]);
+			// # Present 
+			res = pQueue.Present(pImageIndex);
+		}
 
-		pQueue.Present(pImageIndex);
+		// # Check window's changes
+		if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
+		{
+			pIsWindowChanged = true;
+
+			const VkSurfaceCapabilitiesKHR Caps = pDevice.GetSurfaceCapabilities();
+
+			if (Caps.currentExtent.width <= 0 || Caps.currentExtent.height <= 0)
+				pIsWindowHidden = true;
+		}
+		
+		// # Recreate swapchain if the window size changed
+		if (pIsWindowChanged && !pIsWindowHidden)
+		{
+			pCurrentWindowSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
+			RecreateSwapChain();
+
+			pIsWindowChanged = false;
+		}
 	}
 
 	std::vector<std::function<void(VkCommandBuffer, uint32_t)>>* VK_Backend::GetDrawCmdsArray()
@@ -95,7 +158,7 @@ namespace GPU {
 		return &pDrawCmdFuncs;
 	}
 
-	void VK_Backend::CreateScreenImageResources(const VK_Texture* pFinalTexture)
+	void VK_Backend::InitScreenImage()
 	{
 		const std::vector<float> pVertices = {
 			//  Pos        UV
@@ -109,34 +172,6 @@ namespace GPU {
 		};
 
 		pScreenImageBuffer.Create(pVertices.data(), sizeof(float) * pVertices.size(), RHI::GPU_BUFFER_TYPE_STATIC);
-
-		auto pWinSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
-
-		// # Bindings of screen image draw command
-		RHI::GPU_Binding pBindings[] = {
-			{
-				.pBinding = 0,
-				.pBindType = RHI::GPU_BINDING_TYPE_STATIC_BUFFER,
-				.pStage = RHI::GPU_SHADER_STAGE_VERTEX_BIT,
-				.pBuffer = &pScreenImageBuffer
-			},
-			{
-				.pBinding = 1,
-				.pBindType = RHI::GPU_BINDING_TYPE_TEXTURE,
-				.pStage = RHI::GPU_SHADER_STAGE_FRAGMENT_BIT,
-				.pTexture = pFinalTexture
-			}
-		};
-		// # Draw info
-		RHI::GPU_DrawInfo pDrawInfo = {
-			.pBindCount = 2,
-			.pBindings = &pBindings[0],
-			.pRenderArea = {
-				.pOffset = {.x = 0, .y = 0},
-				.pExtent = {.width = pWinSize.pWidth, .height = pWinSize.pHeight}
-			}
-		};
-		pScreenImagePipeline.Create(pDrawInfo);
 
 		const std::vector<uint32_t> VertexShaderBin = {
 			119734787, 65536, 851979, 54, 0, 131089, 1, 393227, 1, 1280527431, 1685353262, 808793134,
@@ -177,6 +212,40 @@ namespace GPU {
 		};
 
 		pScreenImageShader.InitSPIR_V(VertexShaderBin, FragmentShaderBin);
+	}
+
+	void VK_Backend::CreateScreenImageResources(const VK_Texture* pFinalTexture)
+	{
+		auto pWinSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
+
+
+		// # Bindings of screen image draw command
+		RHI::GPU_Binding pBindings[] = {
+			{
+				.pBinding = 0,
+				.pBindType = RHI::GPU_BINDING_TYPE_STATIC_BUFFER,
+				.pStage = RHI::GPU_SHADER_STAGE_VERTEX_BIT,
+				.pBuffer = &pScreenImageBuffer
+			},
+			{
+				.pBinding = 1,
+				.pBindType = RHI::GPU_BINDING_TYPE_TEXTURE,
+				.pStage = RHI::GPU_SHADER_STAGE_FRAGMENT_BIT,
+				.pTexture = pFinalTexture
+			}
+		};
+		// # Draw info
+		RHI::GPU_DrawInfo pDrawInfo = {
+			.pBindCount = 2,
+			.pBindings = &pBindings[0],
+			.pRenderArea = {
+				.pOffset = {.x = 0, .y = 0},
+				.pExtent = {.width = pWinSize.pWidth, .height = pWinSize.pHeight}
+			}
+		};
+
+		pScreenImagePipeline = new VK_GraphicsPipeline;
+		pScreenImagePipeline->Create(pDrawInfo);
 
 		const std::vector<VkFormat> pColorFormats = { pSwapChain.GetSurfaceFormat().format };
 
@@ -200,7 +269,21 @@ namespace GPU {
 
 		pCurrentRenderPass = pSwapChain.GetRenderPass();
 		pCurrentShader = pScreenImageShader;
-		pScreenImagePipeline.CreatePipeline();
+		pScreenImagePipeline->CreatePipeline();
+	}
+
+	void VK_Backend::RecreateSwapChain()
+	{
+		vkDeviceWaitIdle(pDevice.GetDevice());
+
+		pSwapChain.Destroy();
+
+		pSwapChain.Create();
+
+		pScreenImagePipeline->Destroy();
+		delete pScreenImagePipeline;
+
+		EndRecord(pLastUsedTexture);
 	}
 
 	void VK_Backend::BeginRecord()
@@ -211,6 +294,7 @@ namespace GPU {
 	void VK_Backend::EndRecord(const RHI::GPU_Texture* pFinalTexture)
 	{
 		CreateScreenImageResources((const VK_Texture*)pFinalTexture);
+		pLastUsedTexture = (const VK_Texture*)pFinalTexture;
 		
 		const VkSurfaceFormatKHR pFormat = VK_Backend::Get()->GetSwapChain().GetSurfaceFormat();
 		const bool pIsDynamicSupported = VK_Backend::Get()->GetDevice().GetSelectedDevice().pIsDynamicSupported;
@@ -276,7 +360,7 @@ namespace GPU {
 			}
 			
 			// -- # Draw screen image ( up scaling to the window size )
-			pScreenImagePipeline.Bind(i);
+			pScreenImagePipeline->Bind(i);
 			vkCmdDraw(CmdBuf, 6, 1, 0, 0);
 
 			// # End rendering with Dynamic

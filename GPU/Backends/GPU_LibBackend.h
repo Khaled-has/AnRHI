@@ -9,6 +9,15 @@ namespace lib_backend
 	struct GPU_WinSize
 	{
 		uint32_t pWidth, pHeight;
+
+		bool operator==(const GPU_WinSize& pSt)
+		{
+			return ((pSt.pWidth == pWidth) && (pSt.pHeight == pHeight));
+		}
+		bool operator!=(const GPU_WinSize& pSt)
+		{
+			return ((pSt.pWidth != pWidth) || (pSt.pHeight != pHeight));
+		}
 	};
 
 	class GPU_LibBackend

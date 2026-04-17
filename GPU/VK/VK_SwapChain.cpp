@@ -105,17 +105,9 @@ namespace GPU
 		return SurfaceFormats[0];
 	}
 
-	void VK_SwapChain::Create(bool pEnableDepthTest)
+	void VK_SwapChain::Create()
 	{
-		pDepthTest = pEnableDepthTest;
-
 		CreateSwapchain();
-
-		// # Create depth resources
-		if (pDepthTest)
-		{
-			CreateDepthResources();
-		}
 
 		/* 
 			# If the selected device does't support dynamic rendering
@@ -148,20 +140,17 @@ namespace GPU
 
 			vkDestroyRenderPass(pDevice, pRenderPass, NULL);
 		}
+		pFramebuffers.clear();
 
 		// # Destroy swapchain's image views
 		for (VkImageView& Im : pImageViews)
 		{
 			vkDestroyImageView(pDevice, Im, NULL);
 		}
+		pImageViews.clear();
 
-		// # Destroy depth resources
-		for (uint32_t i = 0; i < pDepthImages.size(); i++)
-		{
-			vkDestroyImageView(pDevice, pDepthImages[i].pView, NULL);
-			vkFreeMemory(pDevice, pDepthImages[i].pMem, NULL);
-			vkDestroyImage(pDevice, pDepthImages[i].pImage, NULL);
-		}
+		// # Clear swapchain's images
+		pImages.clear();
 
 		// # Destroy swapchain
 		vkDestroySwapchainKHR(pDevice, pSwapChain, NULL);
@@ -172,7 +161,7 @@ namespace GPU
 		const VK_Device& pDevice = VK_Backend::Get()->GetDevice();
 
 		// # Choose num swapchain images
-		const VkSurfaceCapabilitiesKHR& SurfaceCaps = pDevice.GetSelectedDevice().m_surfaceCaps;
+		VkSurfaceCapabilitiesKHR SurfaceCaps = pDevice.GetSurfaceCapabilities();
 		uint32_t NumImages = ChooseNumImages(SurfaceCaps);
 
 		// # Choose present mode

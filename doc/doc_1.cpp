@@ -8,11 +8,11 @@
 
 /* -- You should to render a simple triangle with this documentation -- */
 
-int main(int argc, char argv[])
+int main(int argc, char* argv[])
 {
 	SDL_Window* pWin = SDL_CreateWindow(
 		"AnRHI-doc_1",
-		1440, 720,
+		1360, 720,
 		SDL_WINDOW_VULKAN
 	);
 
@@ -46,7 +46,7 @@ int main(int argc, char argv[])
 		.pBindings = &pBinding,
 		.pRenderArea = {
 			.pOffset{.x = 0, .y = 0 },
-			.pExtent{.width = 1440, .height = 720 }
+			.pExtent{.width = 1360, .height = 720 }
 		}
 	};
 
@@ -56,21 +56,27 @@ int main(int argc, char argv[])
 	// # Step 3: create the shader 
 	// # ( Take Shor you reChange the shader with current API because AnRHI lit you all the designee in the shaders )
 	RHI::GPU_Shader* pShader = RHI::CreateShader();
-	pShader->InitFromFile(
+	pShader->InitFromFile( // # This function shown if you implement shaderc if you not you will don't show it
 		(std::string(RES_PATH) + "GLSL/" + "doc_1.vert").c_str(),
 		(std::string(RES_PATH) + "GLSL/" + "doc_1.frag").c_str()
-		);
-
-	// # Step 4: create the render pass
-	RHI::GPU_Texture* pColorTextureAttach = RHI::CreateTexture();
-	pColorTextureAttach->BindData(
-		RHI::GPU_TEXTURE_TYPE_2D,
-		nullptr,
-		1440, 720,
-		RHI::GPU_FORMAT_COLOR_BGRA8,
-		RHI::GPU_TEXTURE_STATE_DYNAMIC
 	);
 
+	// # You can use this functions if you want more controlee
+	// -> pShader->InitFromSPIRvFile("file.vert.spv", "file.frag.spv");
+	// -> pShader->InitSPIR_V(SPITV_Code_vert, SPITV_Code_frag);
+
+	// # Step 4: create the attachments texture
+	RHI::GPU_TextureInfo pTexColorInfo = {
+		.pType = RHI::GPU_TEXTURE_TYPE_2D,
+		.pPixels = nullptr,
+		.pSize = RHI::GPU_Size{ .pWidth = 1360, .pHeight = 720 },
+		.pFormat = RHI::GPU_FORMAT_COLOR_BGRA8,
+		.pAspect = RHI::GPU_ASPECT_COLOR_BIT,
+		.pState = RHI::GPU_TEXTURE_STATE_DYNAMIC
+	};
+	RHI::GPU_Texture* pColorTextureAttach = RHI::CreateTexture(pTexColorInfo);
+
+	// # Step 5: create the render pass
 	RHI::GPU_RenderPassInfo pRenPassInfo = {
 		.pEnableColor = true,
 		.pEnableDepth = false,
@@ -79,12 +85,12 @@ int main(int argc, char argv[])
 		.pDepthTexture = nullptr,
 		.pRenderArea = {
 			.pOffset { .x = 0, .y = 0 },
-			.pExtent{ .width = 1440, .height = 720 }
+			.pExtent{ .width = 1360, .height = 720 }
 		}
 	};
 
 	RHI::GPU_RenderPass* pRenPassDrawObjs = RHI::CreateRenderPass(pRenPassInfo);
-	// # Step 5: record the draw commands on the render pass
+	// # Step 6: record the draw commands on the render pass
 	pBackend->BeginRecord();
 	
 	// # Start the render pass
@@ -113,7 +119,7 @@ int main(int argc, char argv[])
 			if (pEv.type == SDL_EVENT_QUIT)
 				pRunning = false;
 		}
-
+		
 		// # Begin the rendering
 		pBackend->BeginRendering();
 

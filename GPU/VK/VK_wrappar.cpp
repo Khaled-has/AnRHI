@@ -519,6 +519,7 @@ namespace GPU
 		case VK_FORMAT_R32G32B32_SFLOAT:
 			return 3 * sizeof(float);
 		case VK_FORMAT_R8G8B8_SRGB:
+		case VK_FORMAT_R8G8B8_UNORM:
 			return 3;
 		case VK_FORMAT_R32G32B32A32_SFLOAT:
 			return 4 * sizeof(float);
@@ -538,6 +539,9 @@ namespace GPU
 
 		case RHI::GPU_FORMAT_COLOR_RGBA8:
 			return VK_FORMAT_R8G8B8A8_UNORM;
+
+		case RHI::GPU_FORMAT_COLOR_RGB8:
+			return VK_FORMAT_R8G8B8_UNORM;
 
 		case RHI::GPU_FORMAT_D32_FLOAT:
 			return VK_FORMAT_D32_SFLOAT;

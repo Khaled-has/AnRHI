@@ -216,6 +216,15 @@ namespace GPU
 		return VK_FALSE;  // The calling function should not be aborted
 	}
 
+	VkSurfaceCapabilitiesKHR VK_Device::GetSurfaceCapabilities() const
+	{
+		VkSurfaceCapabilitiesKHR Caps;
+		VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(GetSelectedDevice().pPhysDevice, pSurface, &Caps);
+		VK_CHECK("vkGetPhysicalDeviceSurfaceCapabilitiesKHR", res);
+
+		return Caps;
+	}
+
 	bool VK_Device::IsExtSupported(const char* _Ext, uint32_t pPhyDeviceIndex) const
 	{
 		return m_pPhyDevices[pPhyDeviceIndex].IsExtensionSupported(_Ext);

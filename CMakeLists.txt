@@ -58,7 +58,7 @@ target_compile_definitions(AnRHI_Core PUBLIC
 
 # Doc executable
 
-set(DOC_APPS "doc_1" "doc_2")
+set(DOC_APPS "doc_1" "doc_2" "doc_3")
 
 foreach (APP IN LISTS DOC_APPS)
 
@@ -66,6 +66,7 @@ add_executable(${APP} "${CMAKE_SOURCE_DIR}/doc/${APP}.cpp")
 
 target_include_directories(${APP} PUBLIC
 	"${EXTERN_DIR}/glm"
+	"${EXTERN_DIR}/stb"
 )
 
 target_link_libraries(${APP} PRIVATE
