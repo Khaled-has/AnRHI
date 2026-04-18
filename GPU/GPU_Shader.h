@@ -33,8 +33,6 @@ namespace RHI
 		virtual void InitFromText(const char* pVertexShader, const char* pFragmentShader) = 0;
 #endif
 
-		virtual void Active() = 0;
-
 		virtual void Destroy() = 0;
 	};
 

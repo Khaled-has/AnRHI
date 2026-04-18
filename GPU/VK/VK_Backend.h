@@ -56,7 +56,6 @@ namespace GPU {
 
 		RHI::GPU_RenderPassInfo& GetCurrentRenderPassInfo() { return pCurrentRenderPassInfo; }
 		inline VkRenderPass& GetCurrentRenderPass() { return pCurrentRenderPass; }
-		inline VK_Shader& GetCurrentShader() { return pCurrentShader; }
 	private:
 		static VK_Backend* pVkInstance;
 
@@ -67,7 +66,7 @@ namespace GPU {
 		VK_Thread pLoadThread;
 
 		VkRenderPass pCurrentRenderPass = VK_NULL_HANDLE;
-		VK_Shader pCurrentShader;
+
 		RHI::GPU_RenderPassInfo pCurrentRenderPassInfo{};
 
 		std::vector<VkCommandBuffer> pCmdBufs;

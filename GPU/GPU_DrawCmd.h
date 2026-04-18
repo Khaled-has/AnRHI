@@ -6,6 +6,7 @@
 #include "GPU_Backend.h"
 #include "GPU_Buffer.h"
 #include "GPU_Texture.h"
+#include "GPU_Shader.h"
 
 namespace RHI
 {
@@ -42,6 +43,7 @@ namespace RHI
 		GPU_DrawType pDrawType;
 		uint32_t pBindCount;
 		const GPU_Binding* pBindings;
+		GPU_Shader* pShader;
 		GPU_RenderArea pRenderArea;
 	} GPU_DrawInfo;
 

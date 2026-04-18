@@ -9,6 +9,7 @@
 #include "VK_Buffer.h"
 #include "VK_Texture.h"
 #include "VK_RenderPass.h"
+#include "VK_Shader.h"
 
 #include "GPU_DrawCmd.h"
 
@@ -35,6 +36,8 @@ namespace GPU
 		std::vector<VkDescriptorSet> pDescriptorSets;
 		VkDescriptorSetLayout pDescriptorSetLayout = VK_NULL_HANDLE;
 		VkDescriptorPool pDescriptorPool		   = VK_NULL_HANDLE;
+
+		VK_Shader* pShader;
 
 		RHI::GPU_RenderArea pRenderArea;
 

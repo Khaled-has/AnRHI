@@ -42,6 +42,7 @@ namespace GPU
 
 	void VK_GraphicsPipeline::Create(const RHI::GPU_DrawInfo& pInfo)
 	{
+		pShader = reinterpret_cast<VK_Shader*>(pInfo.pShader);
 		pRenderArea = pInfo.pRenderArea;
 
 		CreateDescriptorPool(pInfo.pBindings, pInfo.pBindCount);
@@ -248,9 +249,8 @@ namespace GPU
 		bool IsColorAttachmentTheSame = true;
 		const auto pCurrenDrawInfo = VK_Backend::Get()->GetCurrentRenderPassInfo();
 
-		VK_Shader pShader = VK_Backend::Get()->GetCurrentShader();
-		VkShaderModule pVs = pShader.GetVertexShader();
-		VkShaderModule pFs = pShader.GetFragmentShader();
+		VkShaderModule pVs = pShader->GetVertexShader();
+		VkShaderModule pFs = pShader->GetFragmentShader();
 
 		// # Create the pipeline
 		VkPipelineShaderStageCreateInfo ShaderStagesCreateInfo[2] = {
@@ -274,7 +274,7 @@ namespace GPU
 		VkPipelineInputAssemblyStateCreateInfo IACreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
 			.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-			.primitiveRestartEnable = VK_FALSE
+			.primitiveRestartEnable = VK_FALSE,
 		};
 
 		VkViewport VP = {

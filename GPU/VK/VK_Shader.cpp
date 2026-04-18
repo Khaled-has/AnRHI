@@ -196,11 +196,6 @@ namespace GPU
 		pFS = CreateShaderFromSPIR_V(pFragment);
 	}
 
-	void VK_Shader::Active()
-	{
-		VK_Backend::Get()->GetCurrentShader() = *this;
-	}
-
 	void VK_Shader::Destroy()
 	{
 		const VkDevice& pDevice = VK_Backend::Get()->GetDevice().GetDevice();

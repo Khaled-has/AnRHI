@@ -218,7 +218,6 @@ namespace GPU {
 	{
 		auto pWinSize = lib_backend::GPU_LibBackend::GetInstance()->GetWindowSize();
 
-
 		// # Bindings of screen image draw command
 		RHI::GPU_Binding pBindings[] = {
 			{
@@ -238,6 +237,7 @@ namespace GPU {
 		RHI::GPU_DrawInfo pDrawInfo = {
 			.pBindCount = 2,
 			.pBindings = &pBindings[0],
+			.pShader = &pScreenImageShader,
 			.pRenderArea = {
 				.pOffset = {.x = 0, .y = 0},
 				.pExtent = {.width = pWinSize.pWidth, .height = pWinSize.pHeight}
@@ -268,7 +268,6 @@ namespace GPU {
 		};
 
 		pCurrentRenderPass = pSwapChain.GetRenderPass();
-		pCurrentShader = pScreenImageShader;
 		pScreenImagePipeline->CreatePipeline();
 	}
 

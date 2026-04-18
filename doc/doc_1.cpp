@@ -3,7 +3,7 @@
 
 #include <SDL3/SDL.h>
 
-#include "GPU.h"
+#include "AnRHI.h"
 #include "Backends/GPU_SDL3.h"
 
 /* -- You should to render a simple triangle with this documentation -- */
@@ -31,6 +31,13 @@ int main(int argc, char* argv[])
 		pVertices.data(), sizeof(float) * pVertices.size(), RHI::GPU_BUFFER_TYPE_STATIC
 	);
 
+	// # Step 2: create the shader 
+	// # ( Take Shor you reChange the shader with current API because AnRHI lit you all the designee in the shaders )
+	RHI::GPU_Shader* pShader = RHI::CreateShader();
+	pShader->InitFromFile( // # This function shown if you implement shaderc if you not you will don't show it
+		(std::string(RES_PATH) + "GLSL/" + "doc_1.vert").c_str(),
+		(std::string(RES_PATH) + "GLSL/" + "doc_1.frag").c_str()
+	);
 	
 	// # Create the bindings
 	RHI::GPU_Binding pBinding = {
@@ -44,22 +51,15 @@ int main(int argc, char* argv[])
 		.pDrawType = RHI::GPU_DRAW_TYPE_ARRAY,
 		.pBindCount = 1,
 		.pBindings = &pBinding,
+		.pShader = pShader,
 		.pRenderArea = {
 			.pOffset{.x = 0, .y = 0 },
 			.pExtent{.width = 1360, .height = 720 }
 		}
 	};
 
-	// # Step 2: create the draw command
+	// # Step 3: create the draw command
 	RHI::GPU_DrawCmd* pDrawCmd = RHI::CreateDraw(pDrawInfo);
-
-	// # Step 3: create the shader 
-	// # ( Take Shor you reChange the shader with current API because AnRHI lit you all the designee in the shaders )
-	RHI::GPU_Shader* pShader = RHI::CreateShader();
-	pShader->InitFromFile( // # This function shown if you implement shaderc if you not you will don't show it
-		(std::string(RES_PATH) + "GLSL/" + "doc_1.vert").c_str(),
-		(std::string(RES_PATH) + "GLSL/" + "doc_1.frag").c_str()
-	);
 
 	// # You can use this functions if you want more controlee
 	// -> pShader->InitFromSPIRvFile("file.vert.spv", "file.frag.spv");
@@ -97,9 +97,6 @@ int main(int argc, char* argv[])
 	pRenPassDrawObjs->Begin(
 		RHI::GPU_Clear{ .pColor{0, 0, 0, 1}, .pDepth{.depth = 1.0f, .stencil = 0} }
 	);
-	
-	// # Active the shader before you submit the draw command
-	pShader->Active();
 
 	// # Draw command for draw the data you include it on it
 	pDrawCmd->Draw(0, 3);

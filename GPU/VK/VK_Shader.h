@@ -28,7 +28,6 @@ namespace GPU
 		virtual void InitFromText(const char* pVertexShader, const char* pFragmentShader) override;
 #endif
 
-		virtual void Active() override;
 		virtual void Destroy() override;
 
 		inline const VkShaderModule& GetVertexShader() const { return pVS; }
